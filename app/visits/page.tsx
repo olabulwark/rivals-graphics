@@ -136,7 +136,7 @@ async function drawGraphic(
 
   // Photo column — left and bottom borders intentionally bleed off canvas edge
   const borderW = 2;
-  const photoR = 36;
+  const photoR = 56;
   const photoX = -(photoR + borderW);        // pushes left corner fully off-canvas
   const photoW = 575 + (photoR + borderW);   // compensate so 575px is visible
   const photoFrameH = H - contentY + photoR + borderW;  // clips bottom corner too
@@ -170,7 +170,7 @@ async function drawGraphic(
   ctx.shadowOffsetX = 4;
   ctx.shadowOffsetY = 10;
   roundedRect(ctx, photoX - borderW, contentY - borderW, photoW + borderW * 2, photoFrameH + borderW * 2, photoR + borderW);
-  ctx.fillStyle = "#2563EB";
+  ctx.fillStyle = "#0a8bff";
   ctx.fill();
   ctx.restore();
 
@@ -211,7 +211,7 @@ async function drawGraphic(
   ].filter(Boolean);
   const nameText = nameParts.join("  ");
   ctx.fillStyle = "#0a8bff";
-  ctx.font = '700 89px "Alumni Sans", sans-serif';
+  ctx.font = '700 98px "Alumni Sans", sans-serif';
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.shadowColor = "rgba(0,0,0,0.75)";
@@ -228,7 +228,7 @@ async function drawGraphic(
   (ctx as unknown as Record<string, unknown>).letterSpacing = "8px";
   if (stars > 0) {
     ctx.fillStyle = "#a68a50";
-    ctx.font = '46px "Kuunari", Impact, sans-serif';
+    ctx.font = '69px "Kuunari", Impact, sans-serif';
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
     ctx.fillText("★".repeat(stars), W / 2, 256);
