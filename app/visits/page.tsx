@@ -131,7 +131,7 @@ async function drawGraphic(
   ctx.drawImage(dotCanvas, 0, 0);
 
   // ── Content area ──────────────────────────────────────────────────────────
-  const contentY = 292;
+  const contentY = 327;
   const contentH = H - contentY - 80;   // used for card layout
 
   // Photo column — left and bottom borders intentionally bleed off canvas edge
@@ -139,7 +139,7 @@ async function drawGraphic(
   const photoR = 18;
   const photoX = -(photoR + borderW);        // pushes left corner fully off-canvas
   const photoW = 575 + (photoR + borderW);   // compensate so 575px is visible
-  const photoFrameH = H - contentY + photoR + borderW - 35;  // clips bottom corner too
+  const photoFrameH = H - contentY + photoR + borderW;  // clips bottom corner too
 
   // Pre-calculate photo draw params (needed for two-pass rendering)
   let pDrawX = photoX, pDrawY = contentY, pDrawW = photoW, pDrawH = photoFrameH;
