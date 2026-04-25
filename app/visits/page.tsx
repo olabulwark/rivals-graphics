@@ -137,6 +137,10 @@ async function drawGraphic(
     } else {
       pDrawW = photoW; pDrawH = photoW / imgAspect;
     }
+    // Zoom in 40% beyond cover size to give room to pan
+    const zoom = 1.4;
+    pDrawW *= zoom;
+    pDrawH *= zoom;
     const maxOX = (pDrawW - photoW) / 2;
     const maxOY = (pDrawH - photoFrameH) / 2;
     const cx = Math.max(-maxOX, Math.min(maxOX, photoOffset.x));
