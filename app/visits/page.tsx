@@ -98,7 +98,7 @@ async function drawGraphic(
       document.fonts.load('160px "Kuunari"'),
       document.fonts.load('160px "PODIUMSharp"'),
       document.fonts.load('160px "AnzeigenGrotesk"'),
-      document.fonts.load('100 160px "AlumniSans"'),
+      document.fonts.load('400 160px "AlumniSans"'),
     ]);
   } catch { /* ignore */ }
 
@@ -199,7 +199,7 @@ async function drawGraphic(
   ].filter(Boolean);
   const nameText = nameParts.join("  ");
   ctx.fillStyle = "#2563EB";
-  ctx.font = '100 56px "AlumniSans", sans-serif';
+  ctx.font = '400 56px "AlumniSans", sans-serif';
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillText(nameText, W / 2, 208);
