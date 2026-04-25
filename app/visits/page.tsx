@@ -152,12 +152,12 @@ async function drawGraphic(
 
   // ── Content area ──────────────────────────────────────────────────────────
   const contentY = 292;
-  const contentH = H - contentY - 85;   // bottom margin for watermark + border clearance
+  const contentH = H - contentY - 80;   // used for card layout
 
-  // Photo column
-  const photoX = 24;
+  // Photo column — left and bottom borders intentionally bleed off canvas edge
+  const photoX = 0;
   const photoW = 490;
-  const photoFrameH = contentH;
+  const photoFrameH = H - contentY + borderW;  // extends past canvas bottom
   const photoR = 18;
   const borderW = 6;
 
