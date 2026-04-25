@@ -202,7 +202,15 @@ async function drawGraphic(
   ctx.font = '700 81px "Alumni Sans", sans-serif';
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
+  ctx.shadowColor = "rgba(0,0,0,0.45)";
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetX = 2;
+  ctx.shadowOffsetY = 3;
   ctx.fillText(nameText, W / 2, 208);
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
 
   // ── Stars ─────────────────────────────────────────────────────────────────
   (ctx as unknown as Record<string, unknown>).letterSpacing = "8px";
