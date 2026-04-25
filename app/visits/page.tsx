@@ -268,10 +268,10 @@ async function drawGraphic(
 
     // Card with shadow
     ctx.save();
-    ctx.shadowColor   = "rgba(0,0,0,0.28)";
-    ctx.shadowBlur    = 18;
+    ctx.shadowColor   = "rgba(0,0,0,0.55)";
+    ctx.shadowBlur    = 8;
     ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 7;
+    ctx.shadowOffsetY = 5;
     roundedRect(ctx, cardsX, cardY, cardsW, cardH, cardR);
     ctx.fillStyle = college.primaryHex;
     ctx.fill();
