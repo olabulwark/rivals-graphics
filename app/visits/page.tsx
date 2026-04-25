@@ -198,8 +198,8 @@ async function drawGraphic(
     recruitName ? recruitName.toUpperCase() : "RECRUIT NAME",
   ].filter(Boolean);
   const nameText = nameParts.join("  ");
-  ctx.fillStyle = "#2563EB";
-  ctx.font = '700 74px "Alumni Sans", sans-serif';
+  ctx.fillStyle = "#0a8bff";
+  ctx.font = '700 81px "Alumni Sans", sans-serif';
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillText(nameText, W / 2, 208);
