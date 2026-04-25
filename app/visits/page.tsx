@@ -93,6 +93,12 @@ async function drawGraphic(
   const W = CANVAS_W, H = CANVAS_H;
 
   try {
+    // Load AlumniSans directly via FontFace API — more reliable than CSS @font-face for canvas
+    if (!document.fonts.check('400 160px "AlumniSans"')) {
+      const alumniFont = new FontFace('AlumniSans', 'url(/fonts/AlumniSans-VariableFont_wght.ttf)', { weight: '100 900' });
+      await alumniFont.load();
+      document.fonts.add(alumniFont);
+    }
     await Promise.all([
       document.fonts.load('160px "Anton"'),
       document.fonts.load('160px "Kuunari"'),
