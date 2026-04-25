@@ -152,11 +152,11 @@ async function drawGraphic(
 
   // ── Content area ──────────────────────────────────────────────────────────
   const contentY = 292;
-  const contentH = H - contentY - 65;   // bottom margin for watermark
+  const contentH = H - contentY - 85;   // bottom margin for watermark + border clearance
 
   // Photo column
-  const photoX = 16;
-  const photoW = 510;
+  const photoX = 24;
+  const photoW = 490;
   const photoFrameH = contentH;
   const photoR = 18;
   const borderW = 6;
