@@ -152,7 +152,7 @@ async function drawGraphic(
       pDrawW = photoW; pDrawH = photoW / imgAspect;
     }
     // Zoom in 20% beyond cover size to give room to pan
-    const zoom = 1.2;
+    const zoom = 1.1;
     pDrawW *= zoom;
     pDrawH *= zoom;
     const maxOX = (pDrawW - photoW) / 2;
@@ -218,20 +218,20 @@ async function drawGraphic(
   ctx.shadowBlur = 2;
   ctx.shadowOffsetX = 2;
   ctx.shadowOffsetY = 3;
-  ctx.fillText(nameText, W / 2, 219);
+  ctx.fillText(nameText, W / 2, 221);
   ctx.shadowColor = "transparent";
   ctx.shadowBlur = 0;
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
 
   // ── Stars ─────────────────────────────────────────────────────────────────
-  (ctx as unknown as Record<string, unknown>).letterSpacing = "6px";
+  (ctx as unknown as Record<string, unknown>).letterSpacing = "5px";
   if (stars > 0) {
     ctx.fillStyle = "#a68a50";
-    ctx.font = '69px "Kuunari", Impact, sans-serif';
+    ctx.font = '70px "Kuunari", Impact, sans-serif';
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.fillText("★".repeat(stars), W / 2, 288);
+    ctx.fillText("★".repeat(stars), W / 2, 286);
   }
   (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
 
