@@ -115,6 +115,65 @@ async function drawGraphic(
     }
   }
 
+  // ── Content area ──────────────────────────────────────────────────────────
+  const contentY = 292;
+  const contentH = H - contentY - 80;   // used for card layout
+
+  // Photo column — left and bottom borders intentionally bleed off canvas edge
+  const borderW = 6;
+  const photoR = 18;
+  const photoX = -(photoR + borderW);        // pushes left corner fully off-canvas
+  const photoW = 575 + (photoR + borderW);   // compensate so 575px is visible
+  const photoFrameH = H - contentY + photoR + borderW;  // clips bottom corner too
+  const photoOverflow = 115;  // px the photo can rise above the frame top border
+
+  // Pre-calculate photo draw params (needed for two-pass rendering)
+  let pDrawX = photoX, pDrawY = contentY, pDrawW = photoW, pDrawH = photoFrameH;
+  if (photoImg) {
+    const imgAspect   = photoImg.naturalWidth / photoImg.naturalHeight;
+    const frameAspect = photoW / photoFrameH;
+    if (imgAspect > frameAspect) {
+      pDrawH = photoFrameH; pDrawW = photoFrameH * imgAspect;
+    } else {
+      pDrawW = photoW; pDrawH = photoW / imgAspect;
+    }
+    const maxOX = (pDrawW - photoW) / 2;
+    const maxOY = (pDrawH - photoFrameH) / 2;
+    const cx = Math.max(-maxOX, Math.min(maxOX, photoOffset.x));
+    const cy = Math.max(-maxOY, Math.min(maxOY, photoOffset.y));
+    pDrawX = photoX - (pDrawW - photoW) / 2 + cx;
+    pDrawY = contentY - (pDrawH - photoFrameH) / 2 + cy;
+  }
+
+  // Blue border behind photo
+  ctx.save();
+  ctx.shadowColor   = "rgba(0,0,0,0.30)";
+  ctx.shadowBlur    = 22;
+  ctx.shadowOffsetX = 4;
+  ctx.shadowOffsetY = 10;
+  roundedRect(ctx, photoX - borderW, contentY - borderW, photoW + borderW * 2, photoFrameH + borderW * 2, photoR + borderW);
+  ctx.fillStyle = "#2563EB";
+  ctx.fill();
+  ctx.restore();
+
+  // Pass 1 — photo clipped inside frame
+  roundedRect(ctx, photoX, contentY, photoW, photoFrameH, photoR);
+  ctx.save();
+  ctx.clip();
+  if (photoImg) {
+    ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight,
+      pDrawX, pDrawY, pDrawW, pDrawH);
+  } else {
+    ctx.fillStyle = "#dde3ea";
+    ctx.fillRect(photoX, contentY, photoW, photoFrameH);
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.font = '30px "Anton", sans-serif';
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("UPLOAD PHOTO", photoX + photoW / 2, contentY + photoFrameH / 2);
+  }
+  ctx.restore();
+
   // ── "OFFICIAL VISITS" ─────────────────────────────────────────────────────
   (ctx as unknown as Record<string, unknown>).letterSpacing = "-1px";
   ctx.fillStyle = "#111111";
@@ -151,62 +210,16 @@ async function drawGraphic(
   }
   (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
 
-  // ── Content area ──────────────────────────────────────────────────────────
-  const contentY = 292;
-  const contentH = H - contentY - 80;   // used for card layout
-
-  // Photo column — left and bottom borders intentionally bleed off canvas edge
-  const borderW = 6;
-  const photoR = 18;
-  const photoX = -(photoR + borderW);        // pushes left corner fully off-canvas
-  const photoW = 575 + (photoR + borderW);   // compensate so 575px is visible
-  const photoFrameH = H - contentY + photoR + borderW;  // clips bottom corner too
-
-  // Blue border behind photo
-  ctx.save();
-  ctx.shadowColor   = "rgba(0,0,0,0.30)";
-  ctx.shadowBlur    = 22;
-  ctx.shadowOffsetX = 4;
-  ctx.shadowOffsetY = 10;
-  roundedRect(ctx, photoX - borderW, contentY - borderW, photoW + borderW * 2, photoFrameH + borderW * 2, photoR + borderW);
-  ctx.fillStyle = "#2563EB";
-  ctx.fill();
-  ctx.restore();
-
-  // Photo clipped
-  roundedRect(ctx, photoX, contentY, photoW, photoFrameH, photoR);
-  ctx.save();
-  ctx.clip();
+  // Pass 2 — photo overflow above frame (head pops over the top border)
   if (photoImg) {
-    const imgAspect   = photoImg.naturalWidth / photoImg.naturalHeight;
-    const frameAspect = photoW / photoFrameH;
-    let drawW, drawH;
-    if (imgAspect > frameAspect) {
-      drawH = photoFrameH; drawW = photoFrameH * imgAspect;
-    } else {
-      drawW = photoW; drawH = photoW / imgAspect;
-    }
-    const maxOX = (drawW - photoW) / 2;
-    const maxOY = (drawH - photoFrameH) / 2;
-    const cx = Math.max(-maxOX, Math.min(maxOX, photoOffset.x));
-    const cy = Math.max(-maxOY, Math.min(maxOY, photoOffset.y));
-    ctx.drawImage(
-      photoImg,
-      0, 0, photoImg.naturalWidth, photoImg.naturalHeight,
-      photoX - (drawW - photoW) / 2 + cx,
-      contentY - (drawH - photoFrameH) / 2 + cy,
-      drawW, drawH
-    );
-  } else {
-    ctx.fillStyle = "#dde3ea";
-    ctx.fillRect(photoX, contentY, photoW, photoFrameH);
-    ctx.fillStyle = "rgba(0,0,0,0.18)";
-    ctx.font = '30px "Anton", sans-serif';
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("UPLOAD PHOTO", photoX + photoW / 2, contentY + photoFrameH / 2);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(photoX, contentY - photoOverflow, photoW, photoOverflow);
+    ctx.clip();
+    ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight,
+      pDrawX, pDrawY, pDrawW, pDrawH);
+    ctx.restore();
   }
-  ctx.restore();
 
   // ── Visit cards ───────────────────────────────────────────────────────────
   const cardsW     = 370;
