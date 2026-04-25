@@ -199,7 +199,7 @@ async function drawGraphic(
   ].filter(Boolean);
   const nameText = nameParts.join("  ");
   ctx.fillStyle = "#2563EB";
-  ctx.font = '700 56px "AlumniSans", sans-serif';
+  ctx.font = '100 56px "AlumniSans", sans-serif';
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillText(nameText, W / 2, 208);
