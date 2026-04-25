@@ -237,7 +237,7 @@ async function drawGraphic(
     ctx.restore();
 
     // Logo — clipped to card bounds, 50% larger than card height
-    const logoSize = cardH * 1.296;
+    const logoSize = 143;
     const logoX    = cardsX + 1;
     const logoY    = cardY + (cardH - logoSize) / 2;
     if (logoImg) {
