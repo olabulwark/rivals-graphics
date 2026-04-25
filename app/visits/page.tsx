@@ -284,7 +284,7 @@ async function drawGraphic(
     const dateStr = date ? date.toUpperCase() : "TBD";
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.textBaseline = "alphabetic";
     (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
     let fontSize = Math.floor(cardH * 0.552);
     ctx.font = `bold ${fontSize}px "Arial Narrow", Arial, sans-serif`;
@@ -293,7 +293,11 @@ async function drawGraphic(
       fontSize = Math.floor(fontSize * (textW / measured));
       ctx.font = `bold ${fontSize}px "Arial Narrow", Arial, sans-serif`;
     }
-    ctx.fillText(dateStr, textX + textW / 2, cardY + cardH / 2);
+    // True visual centering using actual glyph bounds
+    const metrics = ctx.measureText(dateStr);
+    const textVisualH = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+    const textY = cardY + cardH / 2 + textVisualH / 2 - metrics.actualBoundingBoxDescent;
+    ctx.fillText(dateStr, textX + textW / 2, textY);
   }
 
   // ── Rivals watermark ──────────────────────────────────────────────────────
