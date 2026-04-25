@@ -106,17 +106,29 @@ async function drawGraphic(
   ctx.fillStyle = "#f7f8fa";
   ctx.fillRect(0, 0, W, H);
 
-  // Dot grid
-  ctx.fillStyle = "rgba(160, 185, 210, 0.45)";
+  // Dot grid — diagonal gradient from transparent (top-left) to opaque (bottom-right)
   const dotSpacing = 30;
   const dotRadius  = 2.5;
+  const dotCanvas  = document.createElement("canvas");
+  dotCanvas.width  = W;
+  dotCanvas.height = H;
+  const dotCtx = dotCanvas.getContext("2d")!;
+  dotCtx.fillStyle = "rgba(160, 185, 210, 1)";
   for (let dy = dotSpacing; dy < H; dy += dotSpacing) {
     for (let dx = dotSpacing; dx < W; dx += dotSpacing) {
-      ctx.beginPath();
-      ctx.arc(dx, dy, dotRadius, 0, Math.PI * 2);
-      ctx.fill();
+      dotCtx.beginPath();
+      dotCtx.arc(dx, dy, dotRadius, 0, Math.PI * 2);
+      dotCtx.fill();
     }
   }
+  // Mask with diagonal gradient
+  const dotGrad = dotCtx.createLinearGradient(0, 0, W, H);
+  dotGrad.addColorStop(0, "rgba(0,0,0,0)");
+  dotGrad.addColorStop(1, "rgba(0,0,0,1)");
+  dotCtx.globalCompositeOperation = "destination-in";
+  dotCtx.fillStyle = dotGrad;
+  dotCtx.fillRect(0, 0, W, H);
+  ctx.drawImage(dotCanvas, 0, 0);
 
   // ── Content area ──────────────────────────────────────────────────────────
   const contentY = 292;
