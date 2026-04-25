@@ -192,7 +192,7 @@ async function drawGraphic(
   }
 
   // ── Recruit name line ─────────────────────────────────────────────────────
-  (ctx as unknown as Record<string, unknown>).letterSpacing = "4px";
+  (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
   const nameParts = [
     position ? position.toUpperCase() : "",
     recruitName ? recruitName.toUpperCase() : "RECRUIT NAME",
