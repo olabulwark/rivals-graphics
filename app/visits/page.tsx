@@ -93,18 +93,12 @@ async function drawGraphic(
   const W = CANVAS_W, H = CANVAS_H;
 
   try {
-    // Load AlumniSans directly via FontFace API — more reliable than CSS @font-face for canvas
-    if (!document.fonts.check('400 160px "AlumniSans"')) {
-      const alumniFont = new FontFace('AlumniSans', 'url(/fonts/AlumniSans-VariableFont_wght.ttf)', { weight: '100 900' });
-      await alumniFont.load();
-      document.fonts.add(alumniFont);
-    }
     await Promise.all([
       document.fonts.load('160px "Anton"'),
       document.fonts.load('160px "Kuunari"'),
       document.fonts.load('160px "PODIUMSharp"'),
       document.fonts.load('160px "AnzeigenGrotesk"'),
-      document.fonts.load('400 160px "AlumniSans"'),
+      document.fonts.load('400 160px "Alumni Sans"'),
     ]);
   } catch { /* ignore */ }
 
@@ -205,7 +199,7 @@ async function drawGraphic(
   ].filter(Boolean);
   const nameText = nameParts.join("  ");
   ctx.fillStyle = "#2563EB";
-  ctx.font = '400 56px "AlumniSans", sans-serif';
+  ctx.font = '400 56px "Alumni Sans", sans-serif';
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillText(nameText, W / 2, 208);
@@ -472,11 +466,10 @@ export default function VisitsPage() {
   return (
     <div className="min-h-screen bg-gray-950">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Anton&family=Alumni+Sans:wght@100..900&display=swap');
         @font-face { font-family: 'Kuunari';    src: url('/fonts/Kuunari-MediumCondensed.otf') format('opentype'); }
         @font-face { font-family: 'PODIUMSharp'; src: url('/fonts/PODIUMSharp-6.11.otf') format('opentype'); }
         @font-face { font-family: 'AnzeigenGrotesk'; src: url('/fonts/Anzeigen Grotesk T Regular.otf') format('opentype'); }
-        @font-face { font-family: 'AlumniSans'; src: url('/fonts/AlumniSans-VariableFont_wght.ttf') format('truetype'); font-weight: 100 900; }
       `}</style>
 
       {/* Header */}
