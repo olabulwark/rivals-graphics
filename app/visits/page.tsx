@@ -286,7 +286,7 @@ async function drawGraphic(
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
-    let fontSize = Math.floor(cardH * 0.552);
+    let fontSize = Math.floor(cardH * 0.442);
     ctx.font = `bold ${fontSize}px "Arial Narrow", Arial, sans-serif`;
     const measured = ctx.measureText(dateStr).width;
     if (measured > textW) {
