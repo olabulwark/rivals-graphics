@@ -155,11 +155,11 @@ async function drawGraphic(
   const contentH = H - contentY - 80;   // used for card layout
 
   // Photo column — left and bottom borders intentionally bleed off canvas edge
+  const borderW = 6;
   const photoX = 0;
   const photoW = 490;
   const photoFrameH = H - contentY + borderW;  // extends past canvas bottom
   const photoR = 18;
-  const borderW = 6;
 
   // Blue border behind photo
   ctx.save();
