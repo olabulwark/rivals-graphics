@@ -508,7 +508,7 @@ export default function VisitsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h1 className="text-white font-bold text-lg">Official Visits</h1>
+            <h1 className="text-white font-bold text-lg">Visit Graphic</h1>
           </div>
           <div className="flex items-center gap-4 text-sm text-gray-400">
             <a href="/commit" className="hover:text-white transition-colors flex items-center gap-1.5">
@@ -617,7 +617,7 @@ export default function VisitsPage() {
             {/* Visit slots */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-white font-semibold text-lg">Official Visits</h2>
+                <h2 className="text-white font-semibold text-lg">Visit Graphic</h2>
                 {visits.length < 6 && (
                   <button onClick={addVisit}
                     className="text-green-400 hover:text-green-300 text-sm flex items-center gap-1 transition-colors">

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Recruit Jersey Swap",
+  title: "Jersey Swap",
   description: "Visualize football recruits in college program jerseys",
 };
 

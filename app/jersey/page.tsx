@@ -79,7 +79,7 @@ export default function Home() {
                 <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12z" />
               </svg>
             </div>
-            <h1 className="text-white font-bold text-lg leading-tight">Recruit Jersey Swap</h1>
+            <h1 className="text-white font-bold text-lg leading-tight">Jersey Swap</h1>
           </div>
           <div className="flex items-center gap-3">
             <a href="/visits" className="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-1.5">
