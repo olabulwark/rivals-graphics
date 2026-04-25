@@ -113,7 +113,7 @@ async function drawGraphic(
   dotCanvas.width  = W;
   dotCanvas.height = H;
   const dotCtx = dotCanvas.getContext("2d")!;
-  dotCtx.fillStyle = "rgba(160, 185, 210, 1)";
+  dotCtx.fillStyle = "#e3e5e5";
   for (let dy = dotSpacing; dy < H; dy += dotSpacing) {
     for (let dx = dotSpacing; dx < W; dx += dotSpacing) {
       dotCtx.beginPath();
@@ -200,7 +200,15 @@ async function drawGraphic(
     const tH = tW * (titleImg.naturalHeight / titleImg.naturalWidth);
     const tX = (W - tW) / 2;
     const tY = 8;
+    ctx.shadowColor = "rgba(0,0,0,0.4)";
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 4;
     ctx.drawImage(titleImg, tX, tY, tW, tH);
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
   }
 
   // ── Recruit name line ─────────────────────────────────────────────────────
