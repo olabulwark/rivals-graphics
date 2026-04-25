@@ -202,8 +202,8 @@ async function drawGraphic(
   ctx.font = '700 81px "Alumni Sans", sans-serif';
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.shadowColor = "rgba(0,0,0,0.45)";
-  ctx.shadowBlur = 8;
+  ctx.shadowColor = "rgba(0,0,0,0.75)";
+  ctx.shadowBlur = 2;
   ctx.shadowOffsetX = 2;
   ctx.shadowOffsetY = 3;
   ctx.fillText(nameText, W / 2, 208);
@@ -219,7 +219,7 @@ async function drawGraphic(
     ctx.font = '46px "Kuunari", Impact, sans-serif';
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.fillText("★".repeat(stars), W / 2, 259);
+    ctx.fillText("★".repeat(stars), W / 2, 256);
   }
   (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
 
