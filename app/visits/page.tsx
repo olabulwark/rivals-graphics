@@ -125,7 +125,6 @@ async function drawGraphic(
   const photoX = -(photoR + borderW);        // pushes left corner fully off-canvas
   const photoW = 575 + (photoR + borderW);   // compensate so 575px is visible
   const photoFrameH = H - contentY + photoR + borderW;  // clips bottom corner too
-  const photoOverflow = 115;  // px the photo can rise above the frame top border
 
   // Pre-calculate photo draw params (needed for two-pass rendering)
   let pDrawX = photoX, pDrawY = contentY, pDrawW = photoW, pDrawH = photoFrameH;
@@ -137,8 +136,8 @@ async function drawGraphic(
     } else {
       pDrawW = photoW; pDrawH = photoW / imgAspect;
     }
-    // Zoom in 40% beyond cover size to give room to pan
-    const zoom = 1.4;
+    // Zoom in 60% beyond cover size to give room to pan
+    const zoom = 1.6;
     pDrawW *= zoom;
     pDrawH *= zoom;
     const maxOX = (pDrawW - photoW) / 2;
@@ -218,7 +217,7 @@ async function drawGraphic(
   if (photoImg) {
     ctx.save();
     ctx.beginPath();
-    ctx.rect(photoX, contentY - photoOverflow, photoW, photoOverflow);
+    ctx.rect(photoX, 0, photoW, contentY);
     ctx.clip();
     ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight,
       pDrawX, pDrawY, pDrawW, pDrawH);
