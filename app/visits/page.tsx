@@ -219,7 +219,7 @@ async function drawGraphic(
     ctx.font = '46px "Kuunari", Impact, sans-serif';
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.fillText("★".repeat(stars), W / 2, 262);
+    ctx.fillText("★".repeat(stars), W / 2, 259);
   }
   (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
 
