@@ -157,8 +157,8 @@ async function drawGraphic(
   // Photo column — left and bottom borders intentionally bleed off canvas edge
   const borderW = 6;
   const photoX = 0;
-  const photoW = 490;
-  const photoFrameH = H - contentY + borderW;  // extends past canvas bottom
+  const photoW = 575;
+  const photoFrameH = 1025;
   const photoR = 18;
 
   // Blue border behind photo
