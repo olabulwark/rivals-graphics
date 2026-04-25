@@ -107,15 +107,16 @@ async function drawGraphic(
   ctx.fillRect(0, 0, W, H);
 
   // Dot grid — diagonal gradient from transparent (top-left) to opaque (bottom-right)
-  const dotSpacing = 30;
-  const dotRadius  = 3.5;
+  const dotRadius   = 4;
+  const dotSpacingX = dotRadius * 2 + 10;  // 18px center-to-center horizontally
+  const dotSpacingY = dotRadius * 2 + 11;  // 19px center-to-center vertically
   const dotCanvas  = document.createElement("canvas");
   dotCanvas.width  = W;
   dotCanvas.height = H;
   const dotCtx = dotCanvas.getContext("2d")!;
   dotCtx.fillStyle = "#e3e5e5";
-  for (let dy = dotSpacing; dy < H; dy += dotSpacing) {
-    for (let dx = dotSpacing; dx < W; dx += dotSpacing) {
+  for (let dy = dotSpacingY; dy < H; dy += dotSpacingY) {
+    for (let dx = dotSpacingX; dx < W; dx += dotSpacingX) {
       dotCtx.beginPath();
       dotCtx.arc(dx, dy, dotRadius, 0, Math.PI * 2);
       dotCtx.fill();
