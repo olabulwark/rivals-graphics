@@ -179,17 +179,16 @@ async function drawGraphic(
   }
   ctx.restore();
 
-  // ── "OFFICIAL VISITS" ─────────────────────────────────────────────────────
-  (ctx as unknown as Record<string, unknown>).letterSpacing = "-1px";
-  ctx.fillStyle = "#111111";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.font = '128px "PODIUMSharp", Impact, sans-serif';
-  ctx.save();
-  ctx.translate(W / 2, 138);
-  ctx.scale(1, 1.08);
-  ctx.fillText("OFFICIAL VISITS", 0, 0);
-  ctx.restore();
+  // ── "OFFICIAL VISITS" title image ────────────────────────────────────────
+  const titleImg = await loadImage("/officialvisits.png");
+  if (titleImg) {
+    const maxW = W - 80;
+    const tW = Math.min(titleImg.naturalWidth, maxW);
+    const tH = tW * (titleImg.naturalHeight / titleImg.naturalWidth);
+    const tX = (W - tW) / 2;
+    const tY = (contentY - tH) / 2 - 10;
+    ctx.drawImage(titleImg, tX, tY, tW, tH);
+  }
 
   // ── Recruit name line ─────────────────────────────────────────────────────
   (ctx as unknown as Record<string, unknown>).letterSpacing = "4px";
