@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { COLLEGES, College } from "@/lib/colleges";
+import { removeBackground } from "@imgly/background-removal";
 
 const CANVAS_W = 1080;
 const CANVAS_H = 1350;
@@ -83,11 +84,12 @@ async function drawGraphic(
     position: string;
     stars: number;
     photoImg: HTMLImageElement | null;
+    bgRemovedImg: HTMLImageElement | null;
     photoOffset: { x: number; y: number };
     visits: (Visit & { logoImg: HTMLImageElement | null })[];
   }
 ) {
-  const { recruitName, position, stars, photoImg, photoOffset, visits } = opts;
+  const { recruitName, position, stars, photoImg, bgRemovedImg, photoOffset, visits } = opts;
   const W = CANVAS_W, H = CANVAS_H;
 
   try {
@@ -213,13 +215,15 @@ async function drawGraphic(
   }
   (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
 
-  // Pass 2 — photo overflow above frame (head pops over the top border)
-  if (photoImg) {
+  // Pass 2 — photo overflow above frame with background removed
+  // Use bg-removed version if ready, otherwise fall back to original
+  const overflowImg = bgRemovedImg ?? photoImg;
+  if (overflowImg) {
     ctx.save();
     ctx.beginPath();
     ctx.rect(photoX, 0, photoW, contentY);
     ctx.clip();
-    ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight,
+    ctx.drawImage(overflowImg, 0, 0, overflowImg.naturalWidth, overflowImg.naturalHeight,
       pDrawX, pDrawY, pDrawW, pDrawH);
     ctx.restore();
   }
@@ -338,6 +342,8 @@ export default function VisitsPage() {
   const [position,     setPosition]     = useState("");
   const [stars,        setStars]        = useState(4);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [bgRemovedUrl,  setBgRemovedUrl]  = useState<string | null>(null);
+  const [removingBg,    setRemovingBg]    = useState(false);
   const [photoOffset,  setPhotoOffset]  = useState({ x: 0, y: 0 });
   const [photoDragging, setPhotoDragging] = useState(false);
   const [isRendering,  setIsRendering]  = useState(false);
@@ -390,8 +396,17 @@ export default function VisitsPage() {
 
   const handlePhotoFile = (file: File) => {
     if (!file.type.startsWith("image/")) return;
-    setPhotoPreviewUrl(URL.createObjectURL(file));
+    const url = URL.createObjectURL(file);
+    setPhotoPreviewUrl(url);
     setPhotoOffset({ x: 0, y: 0 });
+    setBgRemovedUrl(null);
+    setRemovingBg(true);
+    removeBackground(url)
+      .then(blob => {
+        setBgRemovedUrl(URL.createObjectURL(blob));
+      })
+      .catch(err => console.error("Background removal failed:", err))
+      .finally(() => setRemovingBg(false));
   };
 
   const setVisitCollege = (i: number, college: College | null) => {
@@ -420,18 +435,21 @@ export default function VisitsPage() {
     if (!ctx) return;
     setIsRendering(true);
     try {
-      const photoImg = photoPreviewUrl ? await loadImage(photoPreviewUrl) : null;
+      const [photoImg, bgRemovedImg] = await Promise.all([
+        photoPreviewUrl ? loadImage(photoPreviewUrl) : Promise.resolve(null),
+        bgRemovedUrl    ? loadImage(bgRemovedUrl)    : Promise.resolve(null),
+      ]);
       const visitsWithLogos = await Promise.all(
         visits.map(async v => ({
           ...v,
           logoImg: v.college ? await loadLogoImage(v.college.id) : null,
         }))
       );
-      await drawGraphic(ctx, { recruitName, position, stars, photoImg, photoOffset, visits: visitsWithLogos });
+      await drawGraphic(ctx, { recruitName, position, stars, photoImg, bgRemovedImg, photoOffset, visits: visitsWithLogos });
     } finally {
       setIsRendering(false);
     }
-  }, [recruitName, position, stars, photoPreviewUrl, photoOffset, visits]);
+  }, [recruitName, position, stars, photoPreviewUrl, bgRemovedUrl, photoOffset, visits]);
 
   useEffect(() => { renderCanvas(); }, [renderCanvas]);
 
@@ -550,6 +568,23 @@ export default function VisitsPage() {
                 <input ref={photoInputRef} type="file" accept="image/*" className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoFile(f); }} />
               </div>
+              {removingBg && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
+                  <svg className="w-3.5 h-3.5 animate-spin text-green-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  Removing background…
+                </div>
+              )}
+              {!removingBg && bgRemovedUrl && (
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-green-400">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Background removed
+                </div>
+              )}
             </div>
 
             {/* Visit slots */}
