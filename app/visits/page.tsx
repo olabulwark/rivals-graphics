@@ -517,7 +517,7 @@ export default function VisitsPage() {
               </svg>
               Commit Graphic
             </a>
-            <a href="/" className="hover:text-white transition-colors">← Jersey Swap</a>
+            <a href="/" className="hover:text-white transition-colors">← Home</a>
           </div>
         </div>
       </header>
