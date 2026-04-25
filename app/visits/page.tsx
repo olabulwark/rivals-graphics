@@ -138,8 +138,8 @@ async function drawGraphic(
     } else {
       pDrawW = photoW; pDrawH = photoW / imgAspect;
     }
-    // Zoom in 60% beyond cover size to give room to pan
-    const zoom = 1.6;
+    // Zoom in 20% beyond cover size to give room to pan
+    const zoom = 1.2;
     pDrawW *= zoom;
     pDrawH *= zoom;
     const maxOX = (pDrawW - photoW) / 2;
