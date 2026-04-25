@@ -245,11 +245,9 @@ async function drawGraphic(
       roundedRect(ctx, cardsX, cardY, cardsW, cardH, cardR);
       ctx.clip();
       const { sx, sy, sw, sh } = getOpaqueBounds(logoImg);
-      const aspect = sw / sh;
-      let lW = logoSize, lH = logoSize;
-      if (aspect > 1) { lH = logoSize / aspect; }
-      else            { lW = logoSize * aspect; }
-      const destX = logoX + (logoSize - lW) / 2;
+      const lH = logoSize;
+      const lW = logoSize * (sw / sh);
+      const destX = logoX;
       const destY = logoY + (logoSize - lH) / 2;
 
       if (college.id === "michigan-state") {
