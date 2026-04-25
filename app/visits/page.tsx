@@ -135,8 +135,8 @@ async function drawGraphic(
   const contentH = H - contentY - 80;   // used for card layout
 
   // Photo column — left and bottom borders intentionally bleed off canvas edge
-  const borderW = 6;
-  const photoR = 18;
+  const borderW = 2;
+  const photoR = 36;
   const photoX = -(photoR + borderW);        // pushes left corner fully off-canvas
   const photoW = 575 + (photoR + borderW);   // compensate so 575px is visible
   const photoFrameH = H - contentY + photoR + borderW;  // clips bottom corner too
@@ -251,7 +251,7 @@ async function drawGraphic(
   // ── Visit cards ───────────────────────────────────────────────────────────
   const cardsW     = 370;
   const cardsX     = W - 28 - cardsW;
-  const cardGap    = 18;
+  const cardGap    = 45;
   const activeVisits = visits.filter(v => v.college !== null);
   const n          = Math.max(activeVisits.length, 1);
   const cardH      = 110;
