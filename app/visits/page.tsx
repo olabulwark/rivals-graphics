@@ -245,9 +245,11 @@ async function drawGraphic(
       roundedRect(ctx, cardsX, cardY, cardsW, cardH, cardR);
       ctx.clip();
       const { sx, sy, sw, sh } = getOpaqueBounds(logoImg);
+      const aspect = sw / sh;
       const lH = logoSize;
-      const lW = logoSize * (sw / sh);
-      const destX = logoX;
+      const lW = logoSize * aspect;
+      // Wide logos: anchor so only 60% is visible, clipped on the right
+      const destX = aspect > 1 ? cardsX + cardsW - lW * 0.6 : logoX;
       const destY = logoY + (logoSize - lH) / 2;
 
       if (college.id === "michigan-state") {
