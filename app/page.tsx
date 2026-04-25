@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
@@ -7,14 +6,8 @@ export default function Home() {
       <div className="flex flex-col items-center gap-12 w-full max-w-lg">
 
         {/* Logo */}
-        <Image
-          src="/rivals-white.png"
-          alt="Rivals"
-          width={320}
-          height={120}
-          className="object-contain"
-          priority
-        />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/rivals-white.png" alt="Rivals" className="w-72 object-contain" />
 
         {/* Tool links */}
         <div className="flex flex-col gap-4 w-full">
