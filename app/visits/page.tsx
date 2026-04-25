@@ -156,10 +156,10 @@ async function drawGraphic(
 
   // Photo column — left and bottom borders intentionally bleed off canvas edge
   const borderW = 6;
-  const photoX = 0;
-  const photoW = 575;
-  const photoFrameH = 1025;
   const photoR = 18;
+  const photoX = -(photoR + borderW);        // pushes left corner fully off-canvas
+  const photoW = 575 + (photoR + borderW);   // compensate so 575px is visible
+  const photoFrameH = H - contentY + photoR + borderW;  // clips bottom corner too
 
   // Blue border behind photo
   ctx.save();
