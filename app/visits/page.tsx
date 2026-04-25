@@ -98,6 +98,7 @@ async function drawGraphic(
       document.fonts.load('160px "Kuunari"'),
       document.fonts.load('160px "PODIUMSharp"'),
       document.fonts.load('160px "AnzeigenGrotesk"'),
+      document.fonts.load('160px "AlumniSans"'),
     ]);
   } catch { /* ignore */ }
 
@@ -198,7 +199,7 @@ async function drawGraphic(
   ].filter(Boolean);
   const nameText = nameParts.join("  ");
   ctx.fillStyle = "#2563EB";
-  ctx.font = '56px "Kuunari", Impact, sans-serif';
+  ctx.font = 'bold 56px "AlumniSans", sans-serif';
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillText(nameText, W / 2, 208);
@@ -307,11 +308,11 @@ async function drawGraphic(
     ctx.textBaseline = "alphabetic";
     (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
     let fontSize = Math.floor(cardH * 0.552);
-    ctx.font = `${fontSize}px "AnzeigenGrotesk", sans-serif`;
+    ctx.font = `bold ${fontSize}px "AlumniSans", sans-serif`;
     const measured = ctx.measureText(dateStr).width;
     if (measured > textW) {
       fontSize = Math.floor(fontSize * (textW / measured));
-      ctx.font = `${fontSize}px "AnzeigenGrotesk", sans-serif`;
+      ctx.font = `bold ${fontSize}px "AlumniSans", sans-serif`;
     }
     // True visual centering using actual glyph bounds
     const metrics = ctx.measureText(dateStr);
@@ -469,6 +470,7 @@ export default function VisitsPage() {
         @font-face { font-family: 'Kuunari';    src: url('/fonts/Kuunari-MediumCondensed.otf') format('opentype'); }
         @font-face { font-family: 'PODIUMSharp'; src: url('/fonts/PODIUMSharp-6.11.otf') format('opentype'); }
         @font-face { font-family: 'AnzeigenGrotesk'; src: url('/fonts/Anzeigen Grotesk T Regular.otf') format('opentype'); }
+        @font-face { font-family: 'AlumniSans'; src: url('/fonts/AlumniSans-VariableFont_wght.ttf') format('truetype'); }
       `}</style>
 
       {/* Header */}
