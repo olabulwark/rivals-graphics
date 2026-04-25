@@ -332,10 +332,10 @@ async function drawGraphic(
     const textW = cardsX + cardsW - textX - 18;
     const dateStr = date ? date.toUpperCase() : "TBD";
     ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
+    ctx.textAlign = "right";
     ctx.textBaseline = "alphabetic";
     (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
-    let fontSize = Math.floor(cardH * 0.552);
+    let fontSize = Math.floor(cardH * 0.62);
     ctx.font = `bold ${fontSize}px "Alumni Sans", sans-serif`;
     const measured = ctx.measureText(dateStr).width;
     if (measured > textW) {
@@ -346,7 +346,7 @@ async function drawGraphic(
     const metrics = ctx.measureText(dateStr);
     const textVisualH = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
     const textY = cardY + cardH / 2 + textVisualH / 2 - metrics.actualBoundingBoxDescent;
-    ctx.fillText(dateStr, textX + textW / 2, textY);
+    ctx.fillText(dateStr, textX + textW, textY);
   }
 
   // ── Rivals watermark ──────────────────────────────────────────────────────
