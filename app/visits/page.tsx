@@ -98,7 +98,7 @@ async function drawGraphic(
       document.fonts.load('160px "Kuunari"'),
       document.fonts.load('160px "PODIUMSharp"'),
       document.fonts.load('160px "AnzeigenGrotesk"'),
-      document.fonts.load('160px "AlumniSans"'),
+      document.fonts.load('100 160px "AlumniSans"'),
     ]);
   } catch { /* ignore */ }
 
@@ -470,7 +470,7 @@ export default function VisitsPage() {
         @font-face { font-family: 'Kuunari';    src: url('/fonts/Kuunari-MediumCondensed.otf') format('opentype'); }
         @font-face { font-family: 'PODIUMSharp'; src: url('/fonts/PODIUMSharp-6.11.otf') format('opentype'); }
         @font-face { font-family: 'AnzeigenGrotesk'; src: url('/fonts/Anzeigen Grotesk T Regular.otf') format('opentype'); }
-        @font-face { font-family: 'AlumniSans'; src: url('/fonts/AlumniSans-VariableFont_wght.ttf') format('truetype'); }
+        @font-face { font-family: 'AlumniSans'; src: url('/fonts/AlumniSans-VariableFont_wght.ttf') format('truetype'); font-weight: 100 900; }
       `}</style>
 
       {/* Header */}
