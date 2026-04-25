@@ -248,8 +248,8 @@ async function drawGraphic(
       const aspect = sw / sh;
       const lH = logoSize;
       const lW = logoSize * aspect;
-      // All logos: left-anchored so front faces the date, overflow clipped on right
-      const destX = logoX;
+      // Shift logo left so the right-facing front is visible, left portion clipped
+      const destX = cardsX - lW * 0.4;
       const destY = logoY + (logoSize - lH) / 2;
 
       if (college.id === "michigan-state") {
