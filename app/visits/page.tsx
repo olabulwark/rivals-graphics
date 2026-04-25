@@ -248,8 +248,17 @@ async function drawGraphic(
       const aspect = sw / sh;
       const lH = logoSize;
       const lW = logoSize * aspect;
-      // Shift logo left so the right-facing front is visible, left portion clipped
-      const destX = cardsX - lW * 0.4;
+      // Shift logo left based on aspect ratio after trimming:
+      // super wide (Arkansas, Missouri etc): heavy shift to show face
+      // narrow/square (Indiana, Illinois etc): light shift
+      let destX: number;
+      if (aspect >= 1.4) {
+        destX = cardsX - lW * 0.4;   // super wide: clip left 40%
+      } else if (aspect >= 1.0) {
+        destX = cardsX - lW * 0.15;  // moderately wide: slight shift
+      } else {
+        destX = logoX;                // tall/narrow: left-anchored, no shift
+      }
       const destY = logoY + (logoSize - lH) / 2;
 
       if (college.id === "michigan-state") {
