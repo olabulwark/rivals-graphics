@@ -269,7 +269,7 @@ async function drawGraphic(
     // Card with shadow
     ctx.save();
     ctx.shadowColor   = "rgba(0,0,0,0.55)";
-    ctx.shadowBlur    = 8;
+    ctx.shadowBlur    = 4;
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 5;
     roundedRect(ctx, cardsX, cardY, cardsW, cardH, cardR);
