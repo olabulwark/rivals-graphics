@@ -139,7 +139,7 @@ async function drawGraphic(
   const photoR = 18;
   const photoX = -(photoR + borderW);        // pushes left corner fully off-canvas
   const photoW = 575 + (photoR + borderW);   // compensate so 575px is visible
-  const photoFrameH = H - contentY + photoR + borderW;  // clips bottom corner too
+  const photoFrameH = H - contentY + photoR + borderW - 35;  // clips bottom corner too
 
   // Pre-calculate photo draw params (needed for two-pass rendering)
   let pDrawX = photoX, pDrawY = contentY, pDrawW = photoW, pDrawH = photoFrameH;
@@ -211,14 +211,14 @@ async function drawGraphic(
   ].filter(Boolean);
   const nameText = nameParts.join("  ");
   ctx.fillStyle = "#0a8bff";
-  ctx.font = '700 81px "Alumni Sans", sans-serif';
+  ctx.font = '700 89px "Alumni Sans", sans-serif';
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.shadowColor = "rgba(0,0,0,0.75)";
   ctx.shadowBlur = 2;
   ctx.shadowOffsetX = 2;
   ctx.shadowOffsetY = 3;
-  ctx.fillText(nameText, W / 2, 208);
+  ctx.fillText(nameText, W / 2, 217);
   ctx.shadowColor = "transparent";
   ctx.shadowBlur = 0;
   ctx.shadowOffsetX = 0;
