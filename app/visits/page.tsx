@@ -257,7 +257,7 @@ async function drawGraphic(
   const cardH      = 110;
   const totalH     = n * cardH + (n - 1) * cardGap;
   // vertically center the card stack within the content area
-  const cardsStartY = contentY + Math.floor((contentH - totalH) / 2);
+  const cardsStartY = contentY;
 
   for (let i = 0; i < activeVisits.length; i++) {
     const { college, date, logoImg } = activeVisits[i];
