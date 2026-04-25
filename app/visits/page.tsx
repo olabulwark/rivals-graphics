@@ -261,7 +261,7 @@ async function drawGraphic(
       }
       const destY = logoY + (logoSize - lH) / 2;
 
-      if (college.id === "michigan-state") {
+      if (college.id === "michigan-state" || college.id === "indiana") {
         // Tint logo white via offscreen canvas
         const oc = document.createElement("canvas");
         oc.width  = Math.ceil(lW);
