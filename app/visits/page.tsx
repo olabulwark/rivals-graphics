@@ -95,6 +95,7 @@ async function drawGraphic(
       document.fonts.load('160px "Anton"'),
       document.fonts.load('160px "Kuunari"'),
       document.fonts.load('160px "PODIUMSharp"'),
+      document.fonts.load('160px "AnzeigenGrotesk"'),
     ]);
   } catch { /* ignore */ }
 
@@ -287,11 +288,11 @@ async function drawGraphic(
     ctx.textBaseline = "alphabetic";
     (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
     let fontSize = Math.floor(cardH * 0.552);
-    ctx.font = `bold ${fontSize}px "Arial Narrow", Arial, sans-serif`;
+    ctx.font = `${fontSize}px "AnzeigenGrotesk", sans-serif`;
     const measured = ctx.measureText(dateStr).width;
     if (measured > textW) {
       fontSize = Math.floor(fontSize * (textW / measured));
-      ctx.font = `bold ${fontSize}px "Arial Narrow", Arial, sans-serif`;
+      ctx.font = `${fontSize}px "AnzeigenGrotesk", sans-serif`;
     }
     // True visual centering using actual glyph bounds
     const metrics = ctx.measureText(dateStr);
@@ -434,6 +435,7 @@ export default function VisitsPage() {
         @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
         @font-face { font-family: 'Kuunari';    src: url('/fonts/Kuunari-MediumCondensed.otf') format('opentype'); }
         @font-face { font-family: 'PODIUMSharp'; src: url('/fonts/PODIUMSharp-6.11.otf') format('opentype'); }
+        @font-face { font-family: 'AnzeigenGrotesk'; src: url('/fonts/Anzeigen Grotesk T Regular.otf') format('opentype'); }
       `}</style>
 
       {/* Header */}
