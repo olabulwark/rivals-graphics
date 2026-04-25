@@ -186,7 +186,7 @@ async function drawGraphic(
     const tW = Math.min(titleImg.naturalWidth, maxW);
     const tH = tW * (titleImg.naturalHeight / titleImg.naturalWidth);
     const tX = (W - tW) / 2;
-    const tY = (contentY - tH) / 2 - 10;
+    const tY = 8;
     ctx.drawImage(titleImg, tX, tY, tW, tH);
   }
 
