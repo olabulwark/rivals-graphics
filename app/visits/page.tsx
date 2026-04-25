@@ -155,8 +155,8 @@ async function drawGraphic(
   const contentH = H - contentY - 65;   // bottom margin for watermark
 
   // Photo column
-  const photoX = 28;
-  const photoW = 456;
+  const photoX = 16;
+  const photoW = 510;
   const photoFrameH = contentH;
   const photoR = 18;
   const borderW = 6;
@@ -286,7 +286,7 @@ async function drawGraphic(
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
-    let fontSize = Math.floor(cardH * 0.442);
+    let fontSize = Math.floor(cardH * 0.552);
     ctx.font = `bold ${fontSize}px "Arial Narrow", Arial, sans-serif`;
     const measured = ctx.measureText(dateStr).width;
     if (measured > textW) {
