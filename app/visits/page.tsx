@@ -108,7 +108,7 @@ async function drawGraphic(
 
   // Dot grid — diagonal gradient from transparent (top-left) to opaque (bottom-right)
   const dotSpacing = 30;
-  const dotRadius  = 2.5;
+  const dotRadius  = 3.5;
   const dotCanvas  = document.createElement("canvas");
   dotCanvas.width  = W;
   dotCanvas.height = H;
