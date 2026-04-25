@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Jersey Swap",
-  description: "Visualize football recruits in college program jerseys",
+  title: "Rivals Graphics",
+  description: "Rivals recruiting graphics tools",
 };
 
 export default function RootLayout({
