@@ -7,19 +7,19 @@ import { removeBackground } from "@imgly/background-removal";
 const CANVAS_W = 1080;
 const CANVAS_H = 1350;
 
-type Visit = { college: College | null; date: string };
+type SchoolSlot = { college: College | null };
+
+// ─── Image helpers ────────────────────────────────────────────────────────────
 
 async function loadLogoImage(collegeId: string): Promise<HTMLImageElement | null> {
-  const exts = ["png", "jpg", "webp", "jpeg"];
-  for (const ext of exts) {
+  for (const ext of ["png", "jpg", "webp", "jpeg"]) {
     try {
-      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      return await new Promise<HTMLImageElement>((resolve, reject) => {
         const i = new Image();
         i.onload = () => resolve(i);
         i.onerror = reject;
         i.src = `/jerseys/${collegeId}/logo.${ext}?t=${Date.now()}`;
       });
-      return img;
     } catch { /* try next */ }
   }
   return null;
@@ -33,15 +33,12 @@ async function loadImage(src: string): Promise<HTMLImageElement | null> {
       img.onerror = reject;
       img.src = src;
     });
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-function getOpaqueBounds(img: HTMLImageElement): { sx: number; sy: number; sw: number; sh: number } {
+function getOpaqueBounds(img: HTMLImageElement) {
   const oc = document.createElement("canvas");
-  oc.width  = img.naturalWidth;
-  oc.height = img.naturalHeight;
+  oc.width = img.naturalWidth; oc.height = img.naturalHeight;
   const octx = oc.getContext("2d")!;
   octx.drawImage(img, 0, 0);
   const { data } = octx.getImageData(0, 0, oc.width, oc.height);
@@ -49,10 +46,8 @@ function getOpaqueBounds(img: HTMLImageElement): { sx: number; sy: number; sw: n
   for (let y = 0; y < oc.height; y++) {
     for (let x = 0; x < oc.width; x++) {
       if (data[(y * oc.width + x) * 4 + 3] > 8) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
       }
     }
   }
@@ -77,72 +72,116 @@ function roundedRect(
   ctx.closePath();
 }
 
+// ─── Canvas draw ──────────────────────────────────────────────────────────────
+
 async function drawGraphic(
   ctx: CanvasRenderingContext2D,
   opts: {
     recruitName: string;
     position: string;
     stars: number;
+    teaser: string;
+    source: string;
     photoImg: HTMLImageElement | null;
     bgRemovedImg: HTMLImageElement | null;
     photoOffset: { x: number; y: number };
-    visits: (Visit & { logoImg: HTMLImageElement | null })[];
+    schools: (SchoolSlot & { logoImg: HTMLImageElement | null })[];
   }
 ) {
-  const { recruitName, position, stars, photoImg, bgRemovedImg, photoOffset, visits } = opts;
+  const { recruitName, position, stars, teaser, source, photoImg, bgRemovedImg, photoOffset, schools } = opts;
   const W = CANVAS_W, H = CANVAS_H;
 
   try {
     await Promise.all([
       document.fonts.load('160px "Anton"'),
-      document.fonts.load('160px "Kuunari"'),
       document.fonts.load('160px "PODIUMSharp"'),
+      document.fonts.load('160px "Kuunari"'),
       document.fonts.load('700 160px "Alumni Sans"'),
     ]);
   } catch { /* ignore */ }
 
-  // ── Background ────────────────────────────────────────────────────────────
-  ctx.fillStyle = "#f7f8fa";
+  // ── Full navy background ──────────────────────────────────────────────────
+  ctx.fillStyle = "#0d1b2e";
   ctx.fillRect(0, 0, W, H);
 
-  // Dot grid — diagonal gradient from transparent (top-left) to opaque (bottom-right)
-  const dotRadius   = 4;
-  const dotSpacingX = dotRadius * 2 + 10;  // 18px center-to-center horizontally
-  const dotSpacingY = dotRadius * 2 + 11;  // 19px center-to-center vertically
-  const dotCanvas  = document.createElement("canvas");
-  dotCanvas.width  = W;
-  dotCanvas.height = H;
-  const dotCtx = dotCanvas.getContext("2d")!;
-  dotCtx.fillStyle = "#e3e5e5";
-  for (let dy = dotSpacingY; dy < H; dy += dotSpacingY) {
-    for (let dx = dotSpacingX; dx < W; dx += dotSpacingX) {
-      dotCtx.beginPath();
-      dotCtx.arc(dx, dy, dotRadius, 0, Math.PI * 2);
-      dotCtx.fill();
-    }
+  // ── Header constants ──────────────────────────────────────────────────────
+  const headerH = 234;
+
+  // ── BREAKING badge ────────────────────────────────────────────────────────
+  const badgeX = 38, badgeY = 26, badgeW = 178, badgeH = 56, badgeR = 28;
+  ctx.fillStyle = "#d42028";
+  roundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeR);
+  ctx.fill();
+  ctx.font = '700 26px "PODIUMSharp", Impact, sans-serif';
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("BREAKING", badgeX + badgeW / 2, badgeY + badgeH / 2 + 1);
+
+  // ── Rivals logo (top-right) ───────────────────────────────────────────────
+  const rivalsHeaderImg = await loadImage("/rivals-white.png");
+  if (rivalsHeaderImg) {
+    const rH = 38;
+    const rW = rH * (rivalsHeaderImg.naturalWidth / rivalsHeaderImg.naturalHeight);
+    ctx.drawImage(rivalsHeaderImg, W - rW - 36, badgeY + (badgeH - rH) / 2, rW, rH);
   }
-  // Mask with diagonal gradient
-  const dotGrad = dotCtx.createLinearGradient(0, 0, W, H);
-  dotGrad.addColorStop(0, "rgba(0,0,0,0)");
-  dotGrad.addColorStop(1, "rgba(0,0,0,1)");
-  dotCtx.globalCompositeOperation = "destination-in";
-  dotCtx.fillStyle = dotGrad;
-  dotCtx.fillRect(0, 0, W, H);
-  ctx.drawImage(dotCanvas, 0, 0);
 
-  // ── Content area ──────────────────────────────────────────────────────────
-  const contentY = 327;
-  const contentH = H - contentY - 80;   // used for card layout
+  // ── RECRUITING NEWS text ──────────────────────────────────────────────────
+  const rnSize = 96;
+  ctx.font = `${rnSize}px "PODIUMSharp", Impact, sans-serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.save();
+  ctx.translate(38, 152);
+  ctx.scale(1, 1.05);
+  ctx.fillText("RECRUITING NEWS", 0, 0);
+  ctx.restore();
 
-  // Photo column — left and bottom borders intentionally bleed off canvas edge
-  const borderW = 2;
-  const photoR = 72;
-  const photoX = -(photoR + borderW);        // pushes left corner fully off-canvas
-  const photoW = 575 + (photoR + borderW);   // compensate so 575px is visible
-  const photoFrameH = H - contentY + photoR + borderW;  // clips bottom corner too
+  // ── Recruit name + position + stars row ───────────────────────────────────
+  const infoY = 198;
+  (ctx as unknown as Record<string, unknown>).letterSpacing = "2px";
+  ctx.font = '700 34px "Alumni Sans", sans-serif';
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
 
-  // Pre-calculate photo draw params (needed for two-pass rendering)
-  let pDrawX = photoX, pDrawY = contentY, pDrawW = photoW, pDrawH = photoFrameH;
+  const namePart = recruitName ? recruitName.toUpperCase() : "";
+  const posPart  = position    ? position.toUpperCase()    : "";
+  const starsPart = stars > 0  ? "★".repeat(stars)         : "";
+
+  let infoX = 38;
+  if (posPart) {
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.fillText(posPart, infoX, infoY);
+    infoX += ctx.measureText(posPart).width + 18;
+    // small separator
+    ctx.fillStyle = "#d42028";
+    ctx.fillRect(infoX - 10, infoY - 24, 3, 28);
+  }
+  if (namePart) {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(namePart, infoX, infoY);
+    infoX += ctx.measureText(namePart).width + 18;
+  }
+  if (starsPart) {
+    ctx.fillStyle = "#a68a50";
+    ctx.font = '700 30px "Alumni Sans", sans-serif';
+    ctx.fillText(starsPart, infoX, infoY);
+  }
+  (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
+
+  // ── Red accent bar separating header from content ─────────────────────────
+  ctx.fillStyle = "#d42028";
+  ctx.fillRect(0, headerH - 6, W, 6);
+
+  // ── Photo column (left) ───────────────────────────────────────────────────
+  const photoR = 72, borderW = 3;
+  const photoX = -(photoR + borderW);
+  const photoW = 568 + (photoR + borderW);
+  const photoFrameH = H - headerH + photoR + borderW;
+
+  // Pre-calculate draw params (needed for two-pass overflow rendering)
+  let pDrawX = photoX, pDrawY = headerH, pDrawW = photoW, pDrawH = photoFrameH;
   if (photoImg) {
     const imgAspect   = photoImg.naturalWidth / photoImg.naturalHeight;
     const frameAspect = photoW / photoFrameH;
@@ -151,144 +190,74 @@ async function drawGraphic(
     } else {
       pDrawW = photoW; pDrawH = photoW / imgAspect;
     }
-    // Zoom in 20% beyond cover size to give room to pan
     const zoom = 1.1;
-    pDrawW *= zoom;
-    pDrawH *= zoom;
+    pDrawW *= zoom; pDrawH *= zoom;
     const maxOX = (pDrawW - photoW) / 2;
     const maxOY = (pDrawH - photoFrameH) / 2;
     const cx = Math.max(-maxOX, Math.min(maxOX, photoOffset.x));
     const cy = Math.max(-maxOY, Math.min(maxOY, photoOffset.y));
     pDrawX = photoX - (pDrawW - photoW) / 2 + cx;
-    pDrawY = contentY - (pDrawH - photoFrameH) / 2 + cy;
+    pDrawY = headerH - (pDrawH - photoFrameH) / 2 + cy;
   }
 
-  // Blue border behind photo
+  // Red border behind photo
   ctx.save();
-  ctx.shadowColor   = "rgba(0,0,0,0.30)";
-  ctx.shadowBlur    = 22;
+  ctx.shadowColor   = "rgba(0,0,0,0.45)";
+  ctx.shadowBlur    = 24;
   ctx.shadowOffsetX = 4;
-  ctx.shadowOffsetY = 10;
-  roundedRect(ctx, photoX - borderW, contentY - borderW, photoW + borderW * 2, photoFrameH + borderW * 2, photoR + borderW);
-  ctx.fillStyle = "#0a8bff";
+  ctx.shadowOffsetY = 12;
+  roundedRect(ctx, photoX - borderW, headerH - borderW, photoW + borderW * 2, photoFrameH + borderW * 2, photoR + borderW);
+  ctx.fillStyle = "#d42028";
   ctx.fill();
   ctx.restore();
 
   // Pass 1 — photo clipped inside frame
-  roundedRect(ctx, photoX, contentY, photoW, photoFrameH, photoR);
+  roundedRect(ctx, photoX, headerH, photoW, photoFrameH, photoR);
   ctx.save();
   ctx.clip();
   if (photoImg) {
     ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight,
       pDrawX, pDrawY, pDrawW, pDrawH);
   } else {
-    ctx.fillStyle = "#dde3ea";
-    ctx.fillRect(photoX, contentY, photoW, photoFrameH);
-    ctx.fillStyle = "rgba(0,0,0,0.18)";
-    ctx.font = '30px "Anton", sans-serif';
+    ctx.fillStyle = "#1a2d45";
+    ctx.fillRect(photoX, headerH, photoW, photoFrameH);
+    ctx.fillStyle = "rgba(255,255,255,0.15)";
+    ctx.font = '32px "Anton", sans-serif';
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("UPLOAD PHOTO", photoX + photoW / 2, contentY + photoFrameH / 2);
+    ctx.fillText("UPLOAD PHOTO", photoX + photoW / 2, headerH + photoFrameH / 2);
   }
   ctx.restore();
 
-  // ── "OFFICIAL VISITS" title image ────────────────────────────────────────
-  const titleImg = await loadImage("/officialvisits.png");
-  if (titleImg) {
-    const maxW = W - 80;
-    const tW = Math.min(titleImg.naturalWidth, maxW);
-    const tH = tW * (titleImg.naturalHeight / titleImg.naturalWidth);
-    const tX = (W - tW) / 2;
-    const tY = 8;
-    ctx.shadowColor = "rgba(0,0,0,0.4)";
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 4;
-    ctx.drawImage(titleImg, tX, tY, tW, tH);
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-  }
+  // ── School logo cards (right column) ─────────────────────────────────────
+  const activeSchools = schools.filter(s => s.college !== null);
+  const n = Math.max(activeSchools.length, 1);
+  const cardsX    = 606;
+  const cardsW    = W - cardsX - 30;
+  const cardGap   = 14;
+  const cardsAreaH = H - headerH - 8;
+  const cardH     = Math.floor((cardsAreaH - (n - 1) * cardGap) / n);
 
-  // ── Recruit name line ─────────────────────────────────────────────────────
-  (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
-  const nameParts = [
-    position ? position.toUpperCase() : "",
-    recruitName ? recruitName.toUpperCase() : "RECRUIT NAME",
-  ].filter(Boolean);
-  const nameText = nameParts.join("  ");
-  ctx.fillStyle = "#0a8bff";
-  ctx.font = '700 98px "Alumni Sans", sans-serif';
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.shadowColor = "rgba(0,0,0,0.75)";
-  ctx.shadowBlur = 2;
-  ctx.shadowOffsetX = 2;
-  ctx.shadowOffsetY = 3;
-  ctx.fillText(nameText, W / 2, 221);
-  ctx.shadowColor = "transparent";
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 0;
-
-  // ── Stars ─────────────────────────────────────────────────────────────────
-  (ctx as unknown as Record<string, unknown>).letterSpacing = "5px";
-  if (stars > 0) {
-    ctx.fillStyle = "#a68a50";
-    ctx.font = '70px "Kuunari", Impact, sans-serif';
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText("★".repeat(stars), W / 2, 286);
-  }
-  (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
-
-  // Pass 2 — photo overflow above frame with background removed
-  // Use bg-removed version if ready, otherwise fall back to original
-  const overflowImg = bgRemovedImg ?? photoImg;
-  if (overflowImg) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(photoX, 0, photoW, contentY);
-    ctx.clip();
-    ctx.drawImage(overflowImg, 0, 0, overflowImg.naturalWidth, overflowImg.naturalHeight,
-      pDrawX, pDrawY, pDrawW, pDrawH);
-    ctx.restore();
-  }
-
-  // ── Visit cards ───────────────────────────────────────────────────────────
-  const cardsW     = 370;
-  const cardsX     = W - 28 - cardsW;
-  const cardGap    = 45;
-  const activeVisits = visits.filter(v => v.college !== null);
-  const n          = Math.max(activeVisits.length, 1);
-  const cardH      = 110;
-  const totalH     = n * cardH + (n - 1) * cardGap;
-  // vertically center the card stack within the content area
-  const cardsStartY = contentY;
-
-  for (let i = 0; i < activeVisits.length; i++) {
-    const { college, date, logoImg } = activeVisits[i];
+  for (let i = 0; i < activeSchools.length; i++) {
+    const { college, logoImg } = activeSchools[i];
     if (!college) continue;
 
-    const cardY = cardsStartY + i * (cardH + cardGap);
+    const cardY = headerH + 8 + i * (cardH + cardGap);
     const cardR = 14;
 
     // Card with shadow
     ctx.save();
     ctx.shadowColor   = "rgba(0,0,0,0.55)";
-    ctx.shadowBlur    = 4;
+    ctx.shadowBlur    = 8;
     ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 5;
+    ctx.shadowOffsetY = 6;
     roundedRect(ctx, cardsX, cardY, cardsW, cardH, cardR);
     ctx.fillStyle = college.primaryHex;
     ctx.fill();
     ctx.restore();
 
-    // Logo — clipped to card bounds, 50% larger than card height
-    const logoSize = 143;
-    const logoX    = cardsX + 1;
-    const logoY    = cardY + (cardH - logoSize) / 2;
+    // Logo (clipped to card, oversized like visits page)
+    const logoSize = Math.floor(cardH * 1.3);
     if (logoImg) {
       ctx.save();
       roundedRect(ctx, cardsX, cardY, cardsW, cardH, cardR);
@@ -297,24 +266,21 @@ async function drawGraphic(
       const aspect = sw / sh;
       const lH = logoSize;
       const lW = logoSize * aspect;
-      // Shift logo left based on aspect ratio after trimming:
-      // super wide (Arkansas, Missouri etc): heavy shift to show face
-      // narrow/square (Indiana, Illinois etc): light shift
       let destX: number;
       if (aspect >= 1.4) {
-        destX = cardsX - lW * 0.4;   // super wide: clip left 40%
+        destX = cardsX - lW * 0.4;
       } else if (aspect >= 1.0) {
-        destX = cardsX - lW * 0.15;  // moderately wide: slight shift
+        destX = cardsX - lW * 0.12;
       } else {
-        destX = logoX;                // tall/narrow: left-anchored, no shift
+        destX = cardsX + 2;
       }
-      const destY = logoY + (logoSize - lH) / 2;
+      const destY = cardY + (cardH - lH) / 2;
 
-      if (college.id === "michigan-state" || college.id === "indiana") {
-        // Tint logo white via offscreen canvas
+      // Tint white for dark-logo-on-dark-bg schools
+      const needsWhiteTint = ["michigan-state", "indiana"].includes(college.id);
+      if (needsWhiteTint) {
         const oc = document.createElement("canvas");
-        oc.width  = Math.ceil(lW);
-        oc.height = Math.ceil(lH);
+        oc.width = Math.ceil(lW); oc.height = Math.ceil(lH);
         const octx = oc.getContext("2d")!;
         octx.drawImage(logoImg, sx, sy, sw, sh, 0, 0, lW, lH);
         octx.globalCompositeOperation = "source-atop";
@@ -327,66 +293,139 @@ async function drawGraphic(
       ctx.restore();
     }
 
-    // Date text — right portion of card
-    const textX = logoX + logoSize + 14;
-    const textW = cardsX + cardsW - textX - 18;
-    const dateStr = date ? date.toUpperCase() : "TBD";
-    ctx.fillStyle = "#ffffff";
+    // School abbreviation / short name (right-anchored)
+    const abbr = college.abbreviation || college.name.toUpperCase().slice(0, 4);
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
     ctx.textAlign = "right";
-    ctx.textBaseline = "alphabetic";
-    (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
-    let fontSize = Math.floor(cardH * 0.62);
-    ctx.font = `bold ${fontSize}px "Alumni Sans", sans-serif`;
-    const measured = ctx.measureText(dateStr).width;
-    if (measured > textW) {
-      fontSize = Math.floor(fontSize * (textW / measured));
-      ctx.font = `bold ${fontSize}px "Alumni Sans", sans-serif`;
-    }
-    // True visual centering using actual glyph bounds
-    const metrics = ctx.measureText(dateStr);
-    const textVisualH = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-    const textY = cardY + cardH / 2 + textVisualH / 2 - metrics.actualBoundingBoxDescent;
-    ctx.fillText(dateStr, textX + textW, textY);
+    ctx.textBaseline = "middle";
+    const abbrFontSize = Math.min(Math.floor(cardH * 0.52), 58);
+    ctx.font = `bold ${abbrFontSize}px "Alumni Sans", sans-serif`;
+    ctx.fillText(abbr, cardsX + cardsW - 18, cardY + cardH / 2 + 2);
   }
 
-  // ── Rivals watermark ──────────────────────────────────────────────────────
+  // ── Pass 2 — bg-removed photo overflows above frame ───────────────────────
+  const overflowImg = bgRemovedImg ?? photoImg;
+  if (overflowImg) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(photoX, 0, photoW, headerH);
+    ctx.clip();
+    ctx.drawImage(overflowImg, 0, 0, overflowImg.naturalWidth, overflowImg.naturalHeight,
+      pDrawX, pDrawY, pDrawW, pDrawH);
+    ctx.restore();
+  }
+
+  // ── Teaser / headline text ────────────────────────────────────────────────
+  // Dark gradient overlay at bottom of photo to make text readable
+  const teaserAreaTop = H - 310;
+  const grad = ctx.createLinearGradient(0, teaserAreaTop - 80, 0, H);
+  grad.addColorStop(0, "rgba(13,27,46,0)");
+  grad.addColorStop(0.3, "rgba(13,27,46,0.85)");
+  grad.addColorStop(1, "rgba(13,27,46,1)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, teaserAreaTop - 80, W, H - (teaserAreaTop - 80));
+
+  // Teaser text — wrap to fit within photo column width
+  const teaserText = teaser || "RECRUITING NEWS HEADLINE GOES HERE";
+  const teaserMaxW = 570;
+  const teaserX = 38;
+
+  (ctx as unknown as Record<string, unknown>).letterSpacing = "-0.5px";
+  let teaserSize = 66;
+  ctx.font = `${teaserSize}px "PODIUMSharp", Impact, sans-serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+
+  // Word-wrap
+  const words = teaserText.toUpperCase().split(" ");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    if (ctx.measureText(test).width > teaserMaxW && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+
+  // Scale down if too many lines
+  if (lines.length > 4) {
+    teaserSize = Math.floor(teaserSize * (4 / lines.length));
+    ctx.font = `${teaserSize}px "PODIUMSharp", Impact, sans-serif`;
+  }
+
+  const lineH = teaserSize * 1.08;
+  const totalTeaserH = lines.length * lineH;
+  const teaserY = H - 290 - 10 + (280 - totalTeaserH) / 2;
+
+  // Red highlight on first line
+  if (lines.length > 0) {
+    const firstLineW = ctx.measureText(lines[0]).width;
+    ctx.fillStyle = "#d42028";
+    ctx.fillRect(teaserX, teaserY - 4, firstLineW, teaserSize + 8);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(lines[0], teaserX, teaserY);
+    for (let li = 1; li < lines.length; li++) {
+      ctx.fillText(lines[li], teaserX, teaserY + li * lineH);
+    }
+  }
+
+  (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
+
+  // Source credit
+  if (source) {
+    ctx.font = '700 22px "Alumni Sans", sans-serif';
+    ctx.fillStyle = "rgba(255,255,255,0.45)";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(`SOURCE: ${source.toUpperCase()}`, teaserX, H - 22);
+  }
+
+  // ── Rivals watermark (bottom-right) ───────────────────────────────────────
   const rivalsImg = await loadImage("/rivals.png");
   if (rivalsImg) {
-    const rH = 51;
+    const rH = 48;
     const rW = rH * (rivalsImg.naturalWidth / rivalsImg.naturalHeight);
-    ctx.globalAlpha = 0.85;
-    ctx.drawImage(rivalsImg, W - rW - 20, H - rH - 14, rW, rH);
+    ctx.globalAlpha = 0.88;
+    ctx.drawImage(rivalsImg, W - rW - 22, H - rH - 16, rW, rH);
     ctx.globalAlpha = 1;
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Page component ───────────────────────────────────────────────────────────
 
-export default function VisitsPage() {
-  const canvasRef    = useRef<HTMLCanvasElement>(null);
+export default function NewsPage() {
+  const canvasRef     = useRef<HTMLCanvasElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
-  const [recruitName,  setRecruitName]  = useState("");
-  const [position,     setPosition]     = useState("");
-  const [stars,        setStars]        = useState(4);
+  const [recruitName,    setRecruitName]    = useState("");
+  const [position,       setPosition]       = useState("");
+  const [stars,          setStars]          = useState(4);
+  const [teaser,         setTeaser]         = useState("");
+  const [source,         setSource]         = useState("USA Today");
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
-  const [bgRemovedUrl,  setBgRemovedUrl]  = useState<string | null>(null);
-  const [removingBg,    setRemovingBg]    = useState(false);
-  const [photoOffset,  setPhotoOffset]  = useState({ x: 0, y: 0 });
-  const [photoDragging, setPhotoDragging] = useState(false);
-  const [isRendering,  setIsRendering]  = useState(false);
+  const [bgRemovedUrl,   setBgRemovedUrl]   = useState<string | null>(null);
+  const [removingBg,     setRemovingBg]     = useState(false);
+  const [photoOffset,    setPhotoOffset]    = useState({ x: 0, y: 0 });
+  const [photoDragging,  setPhotoDragging]  = useState(false);
+  const [isRendering,    setIsRendering]    = useState(false);
 
-  const [visits, setVisits] = useState<Visit[]>([
-    { college: null, date: "" },
-    { college: null, date: "" },
-    { college: null, date: "" },
-    { college: null, date: "" },
+  const [schools, setSchools] = useState<SchoolSlot[]>([
+    { college: null },
+    { college: null },
+    { college: null },
+    { college: null },
+    { college: null },
   ]);
-  const [visitSearch,      setVisitSearch]      = useState<string[]>(["", "", "", "", "", ""]);
-  const [visitDropdownOpen, setVisitDropdownOpen] = useState<number | null>(null);
+  const [schoolSearch,      setSchoolSearch]      = useState<string[]>(["", "", "", "", "", "", "", ""]);
+  const [schoolDropdownOpen, setSchoolDropdownOpen] = useState<number | null>(null);
 
-  const isPanning   = useRef(false);
-  const panLastPos  = useRef({ x: 0, y: 0 });
+  const isPanning  = useRef(false);
+  const panLastPos = useRef({ x: 0, y: 0 });
   const [isPanningState, setIsPanningState] = useState(false);
   const hasPhoto = !!photoPreviewUrl;
 
@@ -407,16 +446,13 @@ export default function VisitsPage() {
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!hasPhoto) return;
-    isPanning.current = true;
-    setIsPanningState(true);
-    panLastPos.current = getCanvasXY(e);
-    e.preventDefault();
+    isPanning.current = true; setIsPanningState(true);
+    panLastPos.current = getCanvasXY(e); e.preventDefault();
   };
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isPanning.current) return;
     const pos = getCanvasXY(e);
-    const dx  = pos.x - panLastPos.current.x;
-    const dy  = pos.y - panLastPos.current.y;
+    const dx = pos.x - panLastPos.current.x, dy = pos.y - panLastPos.current.y;
     panLastPos.current = pos;
     setPhotoOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
   };
@@ -430,30 +466,24 @@ export default function VisitsPage() {
     setBgRemovedUrl(null);
     setRemovingBg(true);
     removeBackground(url)
-      .then(blob => {
-        setBgRemovedUrl(URL.createObjectURL(blob));
-      })
+      .then(blob => setBgRemovedUrl(URL.createObjectURL(blob)))
       .catch(err => console.error("Background removal failed:", err))
       .finally(() => setRemovingBg(false));
   };
 
-  const setVisitCollege = (i: number, college: College | null) => {
-    setVisits(prev => prev.map((v, idx) => idx === i ? { ...v, college } : v));
-    setVisitDropdownOpen(null);
-    setVisitSearch(prev => prev.map((s, idx) => idx === i ? "" : s));
+  const setSchoolCollege = (i: number, college: College | null) => {
+    setSchools(prev => prev.map((s, idx) => idx === i ? { college } : s));
+    setSchoolDropdownOpen(null);
+    setSchoolSearch(prev => prev.map((v, idx) => idx === i ? "" : v));
   };
-  const setVisitDate = (i: number, date: string) =>
-    setVisits(prev => prev.map((v, idx) => idx === i ? { ...v, date } : v));
 
-  const addVisit = () => {
-    if (visits.length >= 6) return;
-    setVisits(prev => [...prev, { college: null, date: "" }]);
-    setVisitSearch(prev => [...prev, ""]);
+  const addSchool = () => {
+    if (schools.length >= 8) return;
+    setSchools(prev => [...prev, { college: null }]);
   };
-  const removeVisit = (i: number) => {
-    setVisits(prev => prev.filter((_, idx) => idx !== i));
-    setVisitSearch(prev => prev.filter((_, idx) => idx !== i));
-    if (visitDropdownOpen === i) setVisitDropdownOpen(null);
+  const removeSchool = (i: number) => {
+    setSchools(prev => prev.filter((_, idx) => idx !== i));
+    if (schoolDropdownOpen === i) setSchoolDropdownOpen(null);
   };
 
   const renderCanvas = useCallback(async () => {
@@ -467,26 +497,29 @@ export default function VisitsPage() {
         photoPreviewUrl ? loadImage(photoPreviewUrl) : Promise.resolve(null),
         bgRemovedUrl    ? loadImage(bgRemovedUrl)    : Promise.resolve(null),
       ]);
-      const visitsWithLogos = await Promise.all(
-        visits.map(async v => ({
-          ...v,
-          logoImg: v.college ? await loadLogoImage(v.college.id) : null,
+      const schoolsWithLogos = await Promise.all(
+        schools.map(async s => ({
+          ...s,
+          logoImg: s.college ? await loadLogoImage(s.college.id) : null,
         }))
       );
-      await drawGraphic(ctx, { recruitName, position, stars, photoImg, bgRemovedImg, photoOffset, visits: visitsWithLogos });
+      await drawGraphic(ctx, {
+        recruitName, position, stars, teaser, source,
+        photoImg, bgRemovedImg, photoOffset,
+        schools: schoolsWithLogos,
+      });
     } finally {
       setIsRendering(false);
     }
-  }, [recruitName, position, stars, photoPreviewUrl, bgRemovedUrl, photoOffset, visits]);
+  }, [recruitName, position, stars, teaser, source, photoPreviewUrl, bgRemovedUrl, photoOffset, schools]);
 
   useEffect(() => { renderCanvas(); }, [renderCanvas]);
-
 
   const handleDownload = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const link = document.createElement("a");
-    link.download = `${recruitName.replace(/\s+/g, "-") || "recruit"}-official-visits.png`;
+    link.download = `${recruitName.replace(/\s+/g, "-") || "recruit"}-recruiting-news.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
   };
@@ -503,25 +536,25 @@ export default function VisitsPage() {
       <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-green-600 rounded-lg flex items-center justify-center">
+            <div className="w-9 h-9 bg-red-700 rounded-lg flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
               </svg>
             </div>
-            <h1 className="text-white font-bold text-lg">Visit Graphic</h1>
+            <h1 className="text-white font-bold text-lg">Recruiting News</h1>
           </div>
           <div className="flex items-center gap-4 text-sm text-gray-400">
             <a href="/commit" className="hover:text-white transition-colors flex items-center gap-1.5">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
               </svg>
-              Commit Graphic
+              Commit
             </a>
-            <a href="/news" className="hover:text-white transition-colors flex items-center gap-1.5">
+            <a href="/visits" className="hover:text-white transition-colors flex items-center gap-1.5">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              News
+              Visits
             </a>
             <a href="/" className="hover:text-white transition-colors">← Home</a>
           </div>
@@ -543,16 +576,16 @@ export default function VisitsPage() {
                     <label className="block text-gray-400 text-sm mb-1.5">Recruit Name</label>
                     <input
                       type="text" value={recruitName} onChange={e => setRecruitName(e.target.value)}
-                      placeholder="e.g. Myles Smith"
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 text-sm"
+                      placeholder="e.g. Jerry Outhouse"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-red-500 text-sm"
                     />
                   </div>
                   <div className="w-28">
                     <label className="block text-gray-400 text-sm mb-1.5">Position</label>
                     <input
                       type="text" value={position} onChange={e => setPosition(e.target.value)}
-                      placeholder="EDGE"
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 text-sm"
+                      placeholder="CB"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-red-500 text-sm"
                     />
                   </div>
                 </div>
@@ -570,6 +603,26 @@ export default function VisitsPage() {
               </div>
             </div>
 
+            {/* Headline / Teaser */}
+            <div>
+              <h2 className="text-white font-semibold text-lg mb-3">Headline</h2>
+              <textarea
+                value={teaser}
+                onChange={e => setTeaser(e.target.value)}
+                placeholder="e.g. 4-star CB decommits from Georgia"
+                rows={3}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-red-500 text-sm resize-none"
+              />
+              <div className="mt-2">
+                <label className="block text-gray-400 text-sm mb-1.5">Source</label>
+                <input
+                  type="text" value={source} onChange={e => setSource(e.target.value)}
+                  placeholder="e.g. USA Today"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-red-500 text-sm"
+                />
+              </div>
+            </div>
+
             {/* Photo */}
             <div>
               <h2 className="text-white font-semibold text-lg mb-3">Recruit Photo</h2>
@@ -579,7 +632,7 @@ export default function VisitsPage() {
                 onDragLeave={() => setPhotoDragging(false)}
                 onDrop={e => { e.preventDefault(); setPhotoDragging(false); const f = e.dataTransfer.files[0]; if (f) handlePhotoFile(f); }}
                 className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all overflow-hidden relative
-                  ${photoDragging ? "border-green-400 bg-green-950/30" : "border-gray-700 hover:border-gray-500 bg-gray-800"}`}
+                  ${photoDragging ? "border-red-500 bg-red-950/30" : "border-gray-700 hover:border-gray-500 bg-gray-800"}`}
               >
                 {photoPreviewUrl ? (
                   <>
@@ -603,7 +656,7 @@ export default function VisitsPage() {
               </div>
               {removingBg && (
                 <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
-                  <svg className="w-3.5 h-3.5 animate-spin text-green-400" fill="none" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 animate-spin text-red-400" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
@@ -611,7 +664,7 @@ export default function VisitsPage() {
                 </div>
               )}
               {!removingBg && bgRemovedUrl && (
-                <div className="mt-2 flex items-center gap-1.5 text-xs text-green-400">
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-red-400">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
                   </svg>
@@ -620,63 +673,61 @@ export default function VisitsPage() {
               )}
             </div>
 
-            {/* Visit slots */}
+            {/* Schools */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-white font-semibold text-lg">Visit Graphic</h2>
-                {visits.length < 6 && (
-                  <button onClick={addVisit}
-                    className="text-green-400 hover:text-green-300 text-sm flex items-center gap-1 transition-colors">
+                <h2 className="text-white font-semibold text-lg">Top Schools</h2>
+                {schools.length < 8 && (
+                  <button onClick={addSchool}
+                    className="text-red-400 hover:text-red-300 text-sm flex items-center gap-1 transition-colors">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Add Visit
+                    Add School
                   </button>
                 )}
               </div>
 
-              <div className="flex flex-col gap-3">
-                {visits.map((visit, i) => (
+              <div className="flex flex-col gap-2">
+                {schools.map((school, i) => (
                   <div key={i} className="flex gap-2 items-start">
-                    {/* School picker */}
                     <div className="flex-1 relative">
                       <button
-                        onClick={() => setVisitDropdownOpen(visitDropdownOpen === i ? null : i)}
+                        onClick={() => setSchoolDropdownOpen(schoolDropdownOpen === i ? null : i)}
                         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm flex items-center justify-between hover:border-gray-500 transition-colors"
                       >
-                        <span className={visit.college ? "text-white" : "text-gray-500"}>
-                          {visit.college ? visit.college.name : "Select school…"}
+                        <span className={school.college ? "text-white" : "text-gray-500"}>
+                          {school.college ? school.college.name : `School ${i + 1}…`}
                         </span>
                         <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
 
-                      {visitDropdownOpen === i && (
+                      {schoolDropdownOpen === i && (
                         <>
-                          {/* Click-outside overlay */}
-                          <div className="fixed inset-0 z-40" onClick={() => setVisitDropdownOpen(null)} />
+                          <div className="fixed inset-0 z-40" onClick={() => setSchoolDropdownOpen(null)} />
                           <div className="absolute z-50 top-full mt-1 w-full bg-gray-800 border border-gray-700 rounded-lg shadow-2xl overflow-hidden">
                             <div className="p-2 border-b border-gray-700">
                               <input
                                 type="text"
                                 placeholder="Search..."
-                                value={visitSearch[i] ?? ""}
-                                onChange={e => setVisitSearch(prev => prev.map((s, si) => si === i ? e.target.value : s))}
+                                value={schoolSearch[i] ?? ""}
+                                onChange={e => setSchoolSearch(prev => prev.map((v, si) => si === i ? e.target.value : v))}
                                 autoFocus
                                 className="w-full bg-gray-700 rounded px-2.5 py-1.5 text-white text-sm placeholder-gray-500 focus:outline-none"
                               />
                             </div>
                             <div className="max-h-52 overflow-y-auto">
                               {sortedColleges
-                                .filter(c => !(visitSearch[i]) || c.name.toLowerCase().includes((visitSearch[i] ?? "").toLowerCase()))
+                                .filter(c => !(schoolSearch[i]) || c.name.toLowerCase().includes((schoolSearch[i] ?? "").toLowerCase()))
                                 .map(c => (
                                   <button
                                     key={c.id}
-                                    onClick={() => setVisitCollege(i, c)}
+                                    onClick={() => setSchoolCollege(i, c)}
                                     className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                                      visit.college?.id === c.id
-                                        ? "bg-green-700 text-white"
+                                      school.college?.id === c.id
+                                        ? "bg-red-700 text-white"
                                         : "text-white hover:bg-gray-700"
                                     }`}
                                   >
@@ -689,18 +740,8 @@ export default function VisitsPage() {
                       )}
                     </div>
 
-                    {/* Date */}
-                    <input
-                      type="text"
-                      value={visit.date}
-                      onChange={e => setVisitDate(i, e.target.value)}
-                      placeholder="MAY 29"
-                      className="w-28 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 text-sm"
-                    />
-
-                    {/* Remove */}
-                    {visits.length > 1 && (
-                      <button onClick={() => removeVisit(i)}
+                    {schools.length > 1 && (
+                      <button onClick={() => removeSchool(i)}
                         className="text-gray-600 hover:text-red-400 transition-colors pt-2.5">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -716,7 +757,7 @@ export default function VisitsPage() {
             <button
               onClick={handleDownload}
               disabled={isRendering}
-              className="w-full py-3.5 rounded-xl font-semibold text-base bg-green-600 hover:bg-green-500 text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-xl font-semibold text-base bg-red-700 hover:bg-red-600 text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
