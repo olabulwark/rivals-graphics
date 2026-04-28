@@ -148,7 +148,7 @@ async function drawGraphic(
 
   const displayQuote = quoteText
     ? quoteText.toUpperCase()
-    : “QUOTE TEXT GOES HERE”;
+    : "QUOTE TEXT GOES HERE";
 
   // Find the largest font size that fits
   let fontSize = 82;
