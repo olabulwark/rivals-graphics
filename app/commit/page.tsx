@@ -784,11 +784,11 @@ export default function CommitPage() {
                 @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
                 @font-face {
                   font-family: 'SteelfishBd';
-                  src: url('/fonts/Steelfish Bd.otf') format('opentype');
+                  src: url('/fonts/Steelfish%20Bd.otf') format('opentype');
                 }
                 @font-face {
                   font-family: 'SteelfishRg';
-                  src: url('/fonts/Steelfish Rg.otf') format('opentype');
+                  src: url('/fonts/Steelfish%20Rg.otf') format('opentype');
                 }
                 @font-face {
                   font-family: 'Kuunari';
