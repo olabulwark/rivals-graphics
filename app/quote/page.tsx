@@ -88,11 +88,11 @@ async function drawGraphic(
     ctx.restore();
 
     // Gradient fade at the bottom of the photo into the dark section
-    const fadeGrad = ctx.createLinearGradient(0, SPLIT_Y - 100, 0, SPLIT_Y + 200);
+    const fadeGrad = ctx.createLinearGradient(0, SPLIT_Y - 100, 0, SPLIT_Y);
     fadeGrad.addColorStop(0, "rgba(25,25,25,0)");
     fadeGrad.addColorStop(1, "rgba(25,25,25,1)");
     ctx.fillStyle = fadeGrad;
-    ctx.fillRect(0, SPLIT_Y - 100, W, 300);
+    ctx.fillRect(0, SPLIT_Y - 100, W, 100);
 
     // ── On3 logo — sample top-right brightness to pick light vs dark ──────
     const logoW = 148;
