@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 
 const CANVAS_W = 1080;
 const CANVAS_H = 1080;
-const SPLIT_Y  = 650;   // where photo ends and dark section begins
+const SPLIT_Y  = 850;   // where photo ends and dark section begins
 const QM_SIZE  = 130;   // quote mark image height
 
 async function loadImage(src: string): Promise<HTMLImageElement | null> {
