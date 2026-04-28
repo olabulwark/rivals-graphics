@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 
 const CANVAS_W = 1080;
 const CANVAS_H = 1080;
-const SPLIT_Y  = 580;   // where photo ends and dark section begins
+const SPLIT_Y  = 650;   // where photo ends and dark section begins
 const QM_SIZE  = 130;   // quote mark image height
 
 async function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -92,11 +92,11 @@ async function drawGraphic(
     ctx.restore();
 
     // Gradient fade at the bottom of the photo into the dark section
-    const fadeGrad = ctx.createLinearGradient(0, SPLIT_Y - 180, 0, SPLIT_Y);
+    const fadeGrad = ctx.createLinearGradient(0, SPLIT_Y - 100, 0, SPLIT_Y);
     fadeGrad.addColorStop(0, "rgba(25,25,25,0)");
     fadeGrad.addColorStop(1, "rgba(25,25,25,1)");
     ctx.fillStyle = fadeGrad;
-    ctx.fillRect(0, SPLIT_Y - 180, W, 180);
+    ctx.fillRect(0, SPLIT_Y - 100, W, 100);
 
     // ── On3 logo — sample top-right brightness to pick light vs dark ──────
     const logoW = 148;
