@@ -97,6 +97,26 @@ async function drawGraphic(
     fadeGrad.addColorStop(1, "rgba(25,25,25,1)");
     ctx.fillStyle = fadeGrad;
     ctx.fillRect(0, SPLIT_Y - 180, W, 180);
+
+    // ── On3 logo — sample top-right brightness to pick light vs dark ──────
+    const logoW = 148;
+    const logoPad = 24;
+    const sampleX = W - logoW - logoPad;
+    const sampleY = logoPad;
+    const sampleW = logoW;
+    const sampleH = 60;
+    const sampleData = ctx.getImageData(sampleX, sampleY, sampleW, sampleH).data;
+    let totalLum = 0;
+    for (let i = 0; i < sampleData.length; i += 4) {
+      totalLum += 0.299 * sampleData[i] + 0.587 * sampleData[i + 1] + 0.114 * sampleData[i + 2];
+    }
+    const avgLum = totalLum / (sampleData.length / 4);
+    const on3Src = avgLum > 140 ? "/on3-dark.png" : "/on3-light.png";
+    const on3Img = await loadImage(on3Src);
+    if (on3Img) {
+      const on3H = logoW * (on3Img.naturalHeight / on3Img.naturalWidth);
+      ctx.drawImage(on3Img, W - logoW - logoPad, logoPad, logoW, on3H);
+    }
   } else {
     // Placeholder
     ctx.fillStyle = "#2a2a2a";
