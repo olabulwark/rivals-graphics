@@ -53,16 +53,12 @@ async function drawGraphic(
   const W = CANVAS_W, H = CANVAS_H;
 
   try {
-    const fonts = [
-      new FontFace('AkzidenzBoldCondAlt', 'url(/fonts/Akzidenz-Grotesk%20BQ%20Bold%20Condensed%20Alt.ttf)'),
-      new FontFace('AkzidenzMedCond',     'url(/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf)'),
-    ];
-    for (const f of fonts) {
-      if (!document.fonts.check(`16px "${f.family}"`)) {
-        const loaded = await f.load();
-        document.fonts.add(loaded);
-      }
-    }
+    const [boldFont, medFont] = await Promise.all([
+      new FontFace('AkzidenzBoldCondAlt', 'url(/fonts/Akzidenz-Grotesk%20BQ%20Bold%20Condensed%20Alt.ttf)').load(),
+      new FontFace('AkzidenzMedCond',     'url(/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf)').load(),
+    ]);
+    document.fonts.add(boldFont);
+    document.fonts.add(medFont);
   } catch { /* ignore */ }
 
   // ── Photo section (top) ──────────────────────────────────────────────────
