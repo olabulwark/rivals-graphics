@@ -47,6 +47,24 @@ export default function Home() {
             </svg>
           </Link>
 
+          <Link href="/quote"
+            className="group flex items-center justify-between bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-gray-600 rounded-2xl px-6 py-5 transition-all">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-white font-semibold text-base">Quote Graphic</p>
+                <p className="text-gray-500 text-sm">Generate a pull quote graphic</p>
+              </div>
+            </div>
+            <svg className="w-5 h-5 text-gray-600 group-hover:text-gray-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+
           <Link href="/visits"
             className="group flex items-center justify-between bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-gray-600 rounded-2xl px-6 py-5 transition-all">
             <div className="flex items-center gap-4">
