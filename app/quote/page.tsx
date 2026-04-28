@@ -53,10 +53,16 @@ async function drawGraphic(
   const W = CANVAS_W, H = CANVAS_H;
 
   try {
-    await Promise.all([
-      document.fonts.load('700 160px "Alumni Sans"'),
-      document.fonts.load('400 160px "Alumni Sans"'),
-    ]);
+    const fonts = [
+      new FontFace('AkzidenzBoldCondAlt', 'url(/fonts/Akzidenz-Grotesk BQ Bold Condensed Alt.ttf)'),
+      new FontFace('AkzidenzMedCond',     'url(/fonts/Akzidenz-Grotesk BQ Medium Condensed.ttf)'),
+    ];
+    for (const f of fonts) {
+      if (!document.fonts.check(`16px "${f.family}"`)) {
+        const loaded = await f.load();
+        document.fonts.add(loaded);
+      }
+    }
   } catch { /* ignore */ }
 
   // ── Photo section (top) ──────────────────────────────────────────────────
@@ -130,12 +136,12 @@ async function drawGraphic(
 
   // Find the largest font size that fits
   let fontSize = 82;
-  ctx.font = `700 ${fontSize}px "Alumni Sans", sans-serif`;
+  ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
   let lines = wrapText(ctx, displayQuote, textMaxW);
   const lineH = fontSize * 1.12;
   while (lines.length * lineH > (H - 100 - quoteTop) && fontSize > 32) {
     fontSize -= 2;
-    ctx.font = `700 ${fontSize}px "Alumni Sans", sans-serif`;
+    ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
     lines = wrapText(ctx, displayQuote, textMaxW);
   }
 
@@ -144,7 +150,7 @@ async function drawGraphic(
   const contentH = totalQuoteH + attributionH;
   const startY = quoteTop + Math.max(0, (H - 60 - quoteTop - contentH) / 2) + fontSize;
 
-  ctx.font = `700 ${fontSize}px "Alumni Sans", sans-serif`;
+  ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
   for (let i = 0; i < lines.length; i++) {
     ctx.fillText(lines[i], W / 2, startY + i * lineH);
   }
@@ -154,13 +160,13 @@ async function drawGraphic(
 
   if (speakerName) {
     ctx.fillStyle = "#ffffff";
-    ctx.font = `600 32px "Alumni Sans", sans-serif`;
+    ctx.font = `32px "AkzidenzMedCond", sans-serif`;
     ctx.fillText(speakerName, W / 2, attrY);
   }
 
   if (outlet) {
     ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.font = `400 28px "Alumni Sans", sans-serif`;
+    ctx.font = `28px "AkzidenzMedCond", sans-serif`;
     ctx.fillText(`to ${outlet}`, W / 2, attrY + 40);
   }
 }
@@ -243,7 +249,8 @@ export default function QuotePage() {
   return (
     <div className="min-h-screen bg-gray-950">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Alumni+Sans:wght@100..900&display=swap');
+        @font-face { font-family: 'AkzidenzBoldCondAlt'; src: url('/fonts/Akzidenz-Grotesk BQ Bold Condensed Alt.ttf') format('truetype'); }
+        @font-face { font-family: 'AkzidenzMedCond'; src: url('/fonts/Akzidenz-Grotesk BQ Medium Condensed.ttf') format('truetype'); }
       `}</style>
 
       <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-10">
