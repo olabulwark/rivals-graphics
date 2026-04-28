@@ -158,7 +158,7 @@ async function drawGraphic(
   let fontSize = 82;
   ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
   let lines = wrapText(ctx, displayQuote, textMaxW);
-  const lineH = fontSize * 1.12;
+  const lineH = fontSize * 1.08;
   while (lines.length * lineH > (H - 100 - quoteTop) && fontSize > 32) {
     fontSize -= 2;
     ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
