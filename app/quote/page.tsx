@@ -138,7 +138,7 @@ async function drawGraphic(
   }
 
   // ── Quote text ────────────────────────────────────────────────────────────
-  const textPad  = 72;
+  const textPad  = 60;
   const textMaxW = W - textPad * 2;
   const quoteTop = SPLIT_Y + (qmImg ? QM_SIZE * 0.55 : 20);
 
@@ -147,15 +147,15 @@ async function drawGraphic(
   ctx.textBaseline = "alphabetic";
 
   const displayQuote = quoteText
-    ? `“${quoteText.toUpperCase()}”`
-    : "“QUOTE TEXT GOES HERE”";
+    ? quoteText.toUpperCase()
+    : “QUOTE TEXT GOES HERE”;
 
   // Find the largest font size that fits
   let fontSize = 82;
   ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
   let lines = wrapText(ctx, displayQuote, textMaxW);
-  const lineH = fontSize * 1.08;
-  while (lines.length * lineH > (H - 100 - quoteTop) && fontSize > 32) {
+  const lineH = fontSize * 0.98;
+  while (lines.length * lineH > (H - 100 - quoteTop) && fontSize > 43) {
     fontSize -= 2;
     ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
     lines = wrapText(ctx, displayQuote, textMaxW);
