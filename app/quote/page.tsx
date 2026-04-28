@@ -107,7 +107,7 @@ async function drawGraphic(
   ctx.fillRect(0, SPLIT_Y, W, H - SPLIT_Y);
 
   // ── Quote mark image ──────────────────────────────────────────────────────
-  const qmImg = await loadImage("/quotemark.png");
+  const qmImg = await loadImage("/quote.png");
   if (qmImg) {
     const qmW = QM_SIZE * (qmImg.naturalWidth / qmImg.naturalHeight);
     const qmX = (W - qmW) / 2;
