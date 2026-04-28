@@ -54,8 +54,8 @@ async function drawGraphic(
 
   try {
     const fonts = [
-      new FontFace('AkzidenzBoldCondAlt', 'url(/fonts/Akzidenz-Grotesk BQ Bold Condensed Alt.ttf)'),
-      new FontFace('AkzidenzMedCond',     'url(/fonts/Akzidenz-Grotesk BQ Medium Condensed.ttf)'),
+      new FontFace('AkzidenzBoldCondAlt', 'url(/fonts/Akzidenz-Grotesk%20BQ%20Bold%20Condensed%20Alt.ttf)'),
+      new FontFace('AkzidenzMedCond',     'url(/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf)'),
     ];
     for (const f of fonts) {
       if (!document.fonts.check(`16px "${f.family}"`)) {
@@ -269,8 +269,8 @@ export default function QuotePage() {
   return (
     <div className="min-h-screen bg-gray-950">
       <style>{`
-        @font-face { font-family: 'AkzidenzBoldCondAlt'; src: url('/fonts/Akzidenz-Grotesk BQ Bold Condensed Alt.ttf') format('truetype'); }
-        @font-face { font-family: 'AkzidenzMedCond'; src: url('/fonts/Akzidenz-Grotesk BQ Medium Condensed.ttf') format('truetype'); }
+        @font-face { font-family: 'AkzidenzBoldCondAlt'; src: url('/fonts/Akzidenz-Grotesk%20BQ%20Bold%20Condensed%20Alt.ttf') format('truetype'); }
+        @font-face { font-family: 'AkzidenzMedCond'; src: url('/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf') format('truetype'); }
       `}</style>
 
       <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-10">
