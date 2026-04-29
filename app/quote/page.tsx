@@ -199,9 +199,10 @@ async function drawGraphic(
   const darkMid = (SPLIT_Y + H) / 2;
   const startY = Math.round(darkMid - quoteSpan / 2);
 
-  // Attribution sits 39px below the last line's baseline
+  // Attribution sits 39px below the last line's baseline,
+  // but never pushes the outlet line past 50px from the bottom of the canvas.
   const lastLineY = startY + quoteSpan;
-  const attrY = lastLineY + 39;
+  const attrY = Math.min(lastLineY + 39, H - 90);
   if (fontDataUrl) {
     const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const quoteEls = lines.map((line, i) =>
