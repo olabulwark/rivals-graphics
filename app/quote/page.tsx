@@ -159,7 +159,7 @@ async function drawGraphic(
   }
 
   // ── Quote text ────────────────────────────────────────────────────────────
-  const textPad  = 60;
+  const textPad  = 55;
   const textMaxW = W - textPad * 2;
   const qmNatH   = qmImg ? qmImg.naturalHeight : QM_SIZE;
   const quoteTop = SPLIT_Y + (qmImg ? qmNatH * 0.55 : 20) - 60;
