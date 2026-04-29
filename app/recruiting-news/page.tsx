@@ -306,7 +306,7 @@ async function drawGraphic(
     let lx = (W - totalW) / 2;
     for (let i = 0; i < active.length; i++) {
       const { lw, lh } = dims[i];
-      const ly = LOGO_PANEL_Y;
+      const ly = LOGO_PANEL_Y + (LOGO_PANEL_H - lh) / 2;
       ctx.drawImage(active[i], 0, 0, lw, lh, lx, ly, lw, lh);
       lx += lw + gap;
     }
