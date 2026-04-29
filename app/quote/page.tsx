@@ -179,18 +179,17 @@ async function drawGraphic(
     ? quoteText.toUpperCase()
     : "QUOTE TEXT GOES HERE";
 
-  // Pick the largest size (in pt) from the allowed set that fits vertically
+  // Scale down from 72pt until the wrapped lines fit in the dark region, min 24pt
   const PT_TO_PX = 96 / 72;
-  const fontSizesPt = [72, 60, 48, 36];
-  let fontSizePt = fontSizesPt[0];
+  let fontSizePt = 72;
   let lines: string[] = [];
   let lineH = fontSizePt * PT_TO_PX * 0.98;
-  for (const pt of fontSizesPt) {
-    fontSizePt = pt;
-    const px = pt * PT_TO_PX;
+  while (fontSizePt > 24) {
+    const px = fontSizePt * PT_TO_PX;
     lineH = px * 0.98;
     lines = fontDataUrl ? wrapText(fontDataUrl, px, displayQuote, textMaxW) : [];
-    if (lines.length * lineH <= H - 100 - quoteTop) break;
+    if (lines.length * lineH <= H - SPLIT_Y - 80) break;
+    fontSizePt -= 1;
   }
 
   const fontSizePx = fontSizePt * PT_TO_PX;
