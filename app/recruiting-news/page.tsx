@@ -303,8 +303,9 @@ export default function RecruitingNewsPage() {
 
   const [isRendering,   setIsRendering]   = useState(false);
 
-  const isPanning  = useRef(false);
-  const panLastPos = useRef({ x: 0, y: 0 });
+  const isPanning        = useRef(false);
+  const panLastPos       = useRef({ x: 0, y: 0 });
+  const photoNaturalSize = useRef<{ w: number; h: number } | null>(null);
   const [isPanningState, setIsPanningState] = useState(false);
 
   // Close dropdown on outside click
@@ -338,11 +339,27 @@ export default function RecruitingNewsPage() {
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isPanning.current) return;
     const pos = getCanvasXY(e);
-    setPhotoOffset(prev => ({
-      x: prev.x + pos.x - panLastPos.current.x,
-      y: prev.y + pos.y - panLastPos.current.y,
-    }));
+    const dx  = pos.x - panLastPos.current.x;
+    const dy  = pos.y - panLastPos.current.y;
     panLastPos.current = pos;
+    setPhotoOffset(prev => {
+      const nx = prev.x + dx;
+      const ny = prev.y + dy;
+      const nat = photoNaturalSize.current;
+      if (!nat) return { x: nx, y: ny };
+      const imgAspect   = nat.w / nat.h;
+      const frameAspect = CANVAS_W / PHOTO_SPLIT;
+      let dw: number, dh: number;
+      if (imgAspect > frameAspect) { dh = PHOTO_SPLIT; dw = PHOTO_SPLIT * imgAspect; }
+      else                         { dw = CANVAS_W;    dh = CANVAS_W    / imgAspect; }
+      dw *= photoZoom; dh *= photoZoom;
+      const maxOX = Math.max(0, (dw - CANVAS_W)    / 2);
+      const maxOY = Math.max(0, (dh - PHOTO_SPLIT) / 2);
+      return {
+        x: Math.max(-maxOX, Math.min(maxOX, nx)),
+        y: Math.max(-maxOY, Math.min(maxOY, ny)),
+      };
+    });
   };
   const handleCanvasMouseUp = () => { isPanning.current = false; setIsPanningState(false); };
 
@@ -364,7 +381,11 @@ export default function RecruitingNewsPage() {
   // ── Photo upload ────────────────────────────────────────────────────────
   const handlePhotoFile = (file: File) => {
     if (!file.type.startsWith("image/")) return;
-    setPhotoUrl(URL.createObjectURL(file));
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { photoNaturalSize.current = { w: img.naturalWidth, h: img.naturalHeight }; };
+    img.src = url;
+    setPhotoUrl(url);
     setPhotoOffset({ x: 0, y: 0 });
     setPhotoZoom(1.0);
   };

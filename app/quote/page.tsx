@@ -374,6 +374,7 @@ export default function QuotePage() {
   // Drag refs (avoids stale-closure issues in event handlers)
   const isPanning          = useRef(false);
   const panLastPos         = useRef({ x: 0, y: 0 });
+  const photoNaturalSize   = useRef<{ w: number; h: number } | null>(null);
   const isHeadShotDragging = useRef(false);
   const headShotLastPos    = useRef({ x: 0, y: 0 });
 
@@ -433,7 +434,24 @@ export default function QuotePage() {
       const dx = pos.x - panLastPos.current.x;
       const dy = pos.y - panLastPos.current.y;
       panLastPos.current = pos;
-      setPhotoOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      setPhotoOffset(prev => {
+        const nx = prev.x + dx;
+        const ny = prev.y + dy;
+        const nat = photoNaturalSize.current;
+        if (!nat) return { x: nx, y: ny };
+        const imgAspect   = nat.w / nat.h;
+        const frameAspect = CANVAS_W / SPLIT_Y;
+        let dw: number, dh: number;
+        if (imgAspect > frameAspect) { dh = SPLIT_Y;   dw = SPLIT_Y   * imgAspect; }
+        else                         { dw = CANVAS_W;  dh = CANVAS_W  / imgAspect; }
+        dw *= photoZoom; dh *= photoZoom;
+        const maxOX = Math.max(0, (dw - CANVAS_W) / 2);
+        const maxOY = Math.max(0, (dh - SPLIT_Y)  / 2);
+        return {
+          x: Math.max(-maxOX, Math.min(maxOX, nx)),
+          y: Math.max(-maxOY, Math.min(maxOY, ny)),
+        };
+      });
     }
   };
 
@@ -472,7 +490,11 @@ export default function QuotePage() {
   // ── File handlers ────────────────────────────────────────────────────────
   const handlePhotoFile = (file: File) => {
     if (!file.type.startsWith("image/")) return;
-    setPhotoPreviewUrl(URL.createObjectURL(file));
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { photoNaturalSize.current = { w: img.naturalWidth, h: img.naturalHeight }; };
+    img.src = url;
+    setPhotoPreviewUrl(url);
     setPhotoOffset({ x: 0, y: 0 });
     setPhotoZoom(1.0);
   };
