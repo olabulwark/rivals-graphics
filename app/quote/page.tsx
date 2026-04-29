@@ -172,25 +172,28 @@ async function drawGraphic(
     ? quoteText.toUpperCase()
     : "QUOTE TEXT GOES HERE";
 
-  // Pick the largest size from the allowed set that fits vertically
-  const fontSizes = [72, 60, 48, 36];
-  let fontSize = fontSizes[0];
+  // Pick the largest size (in pt) from the allowed set that fits vertically
+  const PT_TO_PX = 96 / 72;
+  const fontSizesPt = [72, 60, 48, 36];
+  let fontSizePt = fontSizesPt[0];
   let lines: string[] = [];
-  let lineH = fontSize * 0.98;
-  for (const size of fontSizes) {
-    fontSize = size;
-    lineH = fontSize * 0.98;
-    ctx.font = `${fontSize}px "AkzidenzBoldCond", sans-serif`;
+  let lineH = fontSizePt * PT_TO_PX * 0.98;
+  for (const pt of fontSizesPt) {
+    fontSizePt = pt;
+    const px = pt * PT_TO_PX;
+    lineH = px * 0.98;
+    ctx.font = `${px}px "AkzidenzBoldCond", sans-serif`;
     lines = wrapText(ctx, displayQuote, textMaxW);
     if (lines.length * lineH <= H - 100 - quoteTop) break;
   }
 
+  const fontSizePx = fontSizePt * PT_TO_PX;
   const totalQuoteH = lines.length * lineH;
   const attributionH = 80;
   const contentH = totalQuoteH + attributionH;
-  const startY = quoteTop + Math.max(0, (H - 60 - quoteTop - contentH) / 2) + fontSize;
+  const startY = quoteTop + Math.max(0, (H - 60 - quoteTop - contentH) / 2) + fontSizePx;
 
-  ctx.font = `${fontSize}px "AkzidenzBoldCond", sans-serif`;
+  ctx.font = `${fontSizePx}px "AkzidenzBoldCond", sans-serif`;
   for (let i = 0; i < lines.length; i++) {
     ctx.fillText(lines[i], W / 2, startY + i * lineH);
   }
@@ -203,7 +206,7 @@ async function drawGraphic(
   ctx.font = '28px monospace';
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.fillText(`Quote font: ${fontSize}px`, 14, 26);
+  ctx.fillText(`Quote font: ${fontSizePt}pt`, 14, 26);
   ctx.restore();
 
   // ── Attribution ───────────────────────────────────────────────────────────
