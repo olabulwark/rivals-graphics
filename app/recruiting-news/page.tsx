@@ -20,74 +20,61 @@ const SHARPEN_URL = (() => {
 })();
 
 const SCHOOLS = [
-  { slug: "alabama",           name: "Alabama" },
-  { slug: "arizona",           name: "Arizona" },
-  { slug: "arizona-state",     name: "Arizona State" },
-  { slug: "arkansas",          name: "Arkansas" },
-  { slug: "auburn",            name: "Auburn" },
-  { slug: "baylor",            name: "Baylor" },
-  { slug: "boston-college",    name: "Boston College" },
-  { slug: "byu",               name: "BYU" },
-  { slug: "cal",               name: "Cal" },
-  { slug: "cincinnati",        name: "Cincinnati" },
-  { slug: "clemson",           name: "Clemson" },
-  { slug: "colorado",          name: "Colorado" },
-  { slug: "duke",              name: "Duke" },
-  { slug: "florida",           name: "Florida" },
-  { slug: "florida-state",     name: "Florida State" },
-  { slug: "georgia",           name: "Georgia" },
-  { slug: "georgia-tech",      name: "Georgia Tech" },
-  { slug: "houston",           name: "Houston" },
-  { slug: "illinois",          name: "Illinois" },
-  { slug: "indiana",           name: "Indiana" },
-  { slug: "iowa",              name: "Iowa" },
-  { slug: "iowa-state",        name: "Iowa State" },
-  { slug: "kansas",            name: "Kansas" },
-  { slug: "kansas-state",      name: "Kansas State" },
-  { slug: "kentucky",          name: "Kentucky" },
-  { slug: "louisville",        name: "Louisville" },
-  { slug: "lsu",               name: "LSU" },
-  { slug: "maryland",          name: "Maryland" },
-  { slug: "miami",             name: "Miami" },
-  { slug: "michigan",          name: "Michigan" },
-  { slug: "michigan-state",    name: "Michigan State" },
-  { slug: "minnesota",         name: "Minnesota" },
-  { slug: "mississippi-state", name: "Mississippi State" },
-  { slug: "missouri",          name: "Missouri" },
-  { slug: "nc-state",          name: "NC State" },
-  { slug: "nebraska",          name: "Nebraska" },
-  { slug: "north-carolina",    name: "North Carolina" },
-  { slug: "northwestern",      name: "Northwestern" },
-  { slug: "notre-dame",        name: "Notre Dame" },
-  { slug: "oklahoma",          name: "Oklahoma" },
-  { slug: "oklahoma-state",    name: "Oklahoma State" },
-  { slug: "ole-miss",          name: "Ole Miss" },
-  { slug: "oregon",            name: "Oregon" },
-  { slug: "oregon-state",      name: "Oregon State" },
-  { slug: "penn-state",        name: "Penn State" },
-  { slug: "pitt",              name: "Pitt" },
-  { slug: "purdue",            name: "Purdue" },
-  { slug: "rutgers",           name: "Rutgers" },
-  { slug: "smu",               name: "SMU" },
-  { slug: "south-carolina",    name: "South Carolina" },
-  { slug: "stanford",          name: "Stanford" },
-  { slug: "syracuse",          name: "Syracuse" },
-  { slug: "tcu",               name: "TCU" },
-  { slug: "tennessee",         name: "Tennessee" },
-  { slug: "texas",             name: "Texas" },
-  { slug: "texas-am",          name: "Texas A&M" },
-  { slug: "texas-tech",        name: "Texas Tech" },
-  { slug: "ucf",               name: "UCF" },
-  { slug: "ucla",              name: "UCLA" },
-  { slug: "usc",               name: "USC" },
-  { slug: "utah",              name: "Utah" },
-  { slug: "vanderbilt",        name: "Vanderbilt" },
-  { slug: "virginia",          name: "Virginia" },
-  { slug: "virginia-tech",     name: "Virginia Tech" },
-  { slug: "wake-forest",       name: "Wake Forest" },
-  { slug: "washington",        name: "Washington" },
-  { slug: "west-virginia",     name: "West Virginia" },
-  { slug: "wisconsin",         name: "Wisconsin" },
+  { slug: "alabama",               name: "Alabama" },
+  { slug: "arizona",               name: "Arizona" },
+  { slug: "arizona-state",         name: "Arizona State" },
+  { slug: "arkansas",              name: "Arkansas" },
+  { slug: "auburn",                name: "Auburn" },
+  { slug: "baylor",                name: "Baylor" },
+  { slug: "byu",                   name: "BYU" },
+  { slug: "cincinnati",            name: "Cincinnati" },
+  { slug: "clemson",               name: "Clemson" },
+  { slug: "colorado",              name: "Colorado" },
+  { slug: "florida-state",         name: "Florida State" },
+  { slug: "georgia",               name: "Georgia" },
+  { slug: "georgia-tech",          name: "Georgia Tech" },
+  { slug: "houston",               name: "Houston" },
+  { slug: "indiana",               name: "Indiana" },
+  { slug: "iowa",                  name: "Iowa" },
+  { slug: "kansas",                name: "Kansas" },
+  { slug: "kansas-state",          name: "Kansas State" },
+  { slug: "kentucky",              name: "Kentucky" },
+  { slug: "louisville",            name: "Louisville" },
+  { slug: "lsu",                   name: "LSU" },
+  { slug: "maryland",              name: "Maryland" },
+  { slug: "miami",                 name: "Miami" },
+  { slug: "michigan",              name: "Michigan" },
+  { slug: "michigan-state",        name: "Michigan State" },
+  { slug: "minnesota",             name: "Minnesota" },
+  { slug: "mississippi-state",     name: "Mississippi State" },
+  { slug: "missouri",              name: "Missouri" },
+  { slug: "nc-state",              name: "NC State" },
+  { slug: "nebraska",              name: "Nebraska" },
+  { slug: "north-carolina",        name: "North Carolina" },
+  { slug: "north-carolina-a-and-t", name: "NC A&T" },
+  { slug: "notre-dame",            name: "Notre Dame" },
+  { slug: "ohio-state",            name: "Ohio State" },
+  { slug: "oklahoma",              name: "Oklahoma" },
+  { slug: "ole-miss",              name: "Ole Miss" },
+  { slug: "oregon",                name: "Oregon" },
+  { slug: "penn-state",            name: "Penn State" },
+  { slug: "rutgers",               name: "Rutgers" },
+  { slug: "sacramento-state",      name: "Sacramento State" },
+  { slug: "smu",                   name: "SMU" },
+  { slug: "south-carolina",        name: "South Carolina" },
+  { slug: "stanford",              name: "Stanford" },
+  { slug: "tennessee",             name: "Tennessee" },
+  { slug: "texas",                 name: "Texas" },
+  { slug: "texas-a-and-m",         name: "Texas A&M" },
+  { slug: "texas-tech",            name: "Texas Tech" },
+  { slug: "ucf",                   name: "UCF" },
+  { slug: "ucla",                  name: "UCLA" },
+  { slug: "usc",                   name: "USC" },
+  { slug: "utah",                  name: "Utah" },
+  { slug: "vanderbilt",            name: "Vanderbilt" },
+  { slug: "virginia-tech",         name: "Virginia Tech" },
+  { slug: "washington",            name: "Washington" },
+  { slug: "wisconsin",             name: "Wisconsin" },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -454,7 +441,7 @@ export default function RecruitingNewsPage() {
     try {
       const photoImg = photoUrl ? await loadImage(photoUrl) : null;
       const logoImgs = await Promise.all(
-        selectedSlugs.map(slug => loadImage(`/logos/${slug}.png`))
+        selectedSlugs.map(slug => loadImage(`/logos-real/${slug}.png`))
       );
       await drawGraphic(ctx, { photoImg, photoOffset, photoZoom, filterEnabled, headlineText, logoImgs });
     } finally {
@@ -607,7 +594,7 @@ export default function RecruitingNewsPage() {
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={`/logos/${school.slug}.png`}
+                            src={`/logos-real/${school.slug}.png`}
                             alt={school.name}
                             className="w-7 h-7 object-contain"
                           />
@@ -627,7 +614,7 @@ export default function RecruitingNewsPage() {
                     return (
                       <div key={slug} className="flex items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`/logos/${slug}.png`} alt={school?.name} className="w-6 h-6 object-contain" />
+                        <img src={`/logos-real/${slug}.png`} alt={school?.name} className="w-6 h-6 object-contain" />
                         <span className="text-white text-xs">{school?.name}</span>
                         <button
                           onClick={() => removeSchool(slug)}
