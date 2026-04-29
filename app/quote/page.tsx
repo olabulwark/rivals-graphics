@@ -143,9 +143,9 @@ async function drawGraphic(
       const creditPad = 20;
       const creditFontSize = 24;
       const creditText = `Photo: ${photoCredit}`;
-      // Sample brightness where the credit will sit (top-right, below On3 logo)
-      const creditSampleY = logoPad + 70;
-      const creditSampleData = ctx.getImageData(W - 280 - creditPad, creditSampleY, 280, 30).data;
+      // Sample brightness where the credit will sit (top-left)
+      const creditSampleY = creditPad;
+      const creditSampleData = ctx.getImageData(creditPad, creditSampleY, 280, 30).data;
       let creditLum = 0;
       for (let i = 0; i < creditSampleData.length; i += 4) {
         creditLum += 0.299 * creditSampleData[i] + 0.587 * creditSampleData[i + 1] + 0.114 * creditSampleData[i + 2];
@@ -153,10 +153,10 @@ async function drawGraphic(
       const creditAvgLum = creditLum / (creditSampleData.length / 4);
       ctx.save();
       ctx.font = `${creditFontSize}px sans-serif`;
-      ctx.textAlign = "right";
+      ctx.textAlign = "left";
       ctx.textBaseline = "top";
       ctx.fillStyle = creditAvgLum > 140 ? "rgba(0,0,0,0.75)" : "rgba(255,255,255,0.85)";
-      ctx.fillText(creditText, W - creditPad, creditSampleY);
+      ctx.fillText(creditText, creditPad, creditSampleY);
       ctx.restore();
     }
   } else {
