@@ -39,6 +39,28 @@ function wrapText(
   return lines;
 }
 
+// Balanced wrap: finds the narrowest column that still produces the same
+// number of lines as greedy, making line lengths more even for centered text.
+function wrapTextBalanced(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+): string[] {
+  const greedyLines = wrapText(ctx, text, maxWidth);
+  const N = greedyLines.length;
+  if (N <= 1) return greedyLines;
+
+  // Binary-search for the minimum width that keeps us at N lines
+  let lo = maxWidth / (N + 1);
+  let hi = maxWidth;
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2;
+    if (wrapText(ctx, text, mid).length <= N) hi = mid;
+    else lo = mid;
+  }
+  return wrapText(ctx, text, hi);
+}
+
 async function drawGraphic(
   ctx: CanvasRenderingContext2D,
   opts: {
@@ -153,13 +175,13 @@ async function drawGraphic(
   // Find the largest font size that fits
   let fontSize = 82;
   ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
-  let lines = wrapText(ctx, displayQuote, textMaxW);
+  let lines = wrapTextBalanced(ctx, displayQuote, textMaxW);
   let lineH = fontSize * 0.98;
   while (lines.length * lineH > (H - 100 - quoteTop) && fontSize > 64) {
     fontSize -= 2;
     lineH = fontSize * 0.98;
     ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
-    lines = wrapText(ctx, displayQuote, textMaxW);
+    lines = wrapTextBalanced(ctx, displayQuote, textMaxW);
   }
 
   const totalQuoteH = lines.length * lineH;
