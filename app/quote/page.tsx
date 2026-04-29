@@ -195,6 +195,17 @@ async function drawGraphic(
     ctx.fillText(lines[i], W / 2, startY + i * lineH);
   }
 
+  // ── DEBUG: font size indicator (temporary) ────────────────────────────────
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.65)";
+  ctx.fillRect(0, 0, 220, 52);
+  ctx.fillStyle = "#ffff00";
+  ctx.font = '28px monospace';
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`Quote font: ${fontSize}px`, 14, 26);
+  ctx.restore();
+
   // ── Attribution ───────────────────────────────────────────────────────────
   const attrY = startY + totalQuoteH + 28;
 
