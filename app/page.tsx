@@ -20,7 +20,10 @@ export default function Home() {
                 </svg>
               </div>
               <div>
-                <p className="text-white font-semibold text-base">Jersey Swap</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-white font-semibold text-base">Jersey Swap</p>
+                  <span className="text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded px-1.5 py-0.5 leading-none">WIP</span>
+                </div>
                 <p className="text-gray-500 text-sm">Put a recruit in any college jersey</p>
               </div>
             </div>
@@ -38,7 +41,10 @@ export default function Home() {
                 </svg>
               </div>
               <div>
-                <p className="text-white font-semibold text-base">Commit Graphic</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-white font-semibold text-base">Commit Graphic</p>
+                  <span className="text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded px-1.5 py-0.5 leading-none">WIP</span>
+                </div>
                 <p className="text-gray-500 text-sm">Generate a commitment announcement graphic</p>
               </div>
             </div>
@@ -74,7 +80,10 @@ export default function Home() {
                 </svg>
               </div>
               <div>
-                <p className="text-white font-semibold text-base">Visit Graphic</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-white font-semibold text-base">Visit Graphic</p>
+                  <span className="text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded px-1.5 py-0.5 leading-none">WIP</span>
+                </div>
                 <p className="text-gray-500 text-sm">Build an official visits graphic</p>
               </div>
             </div>
