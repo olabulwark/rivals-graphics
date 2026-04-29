@@ -34,27 +34,28 @@ async function getBoldFontDataUrl(): Promise<string | null> {
   } catch { return null; }
 }
 
-// DOM-based measurement so wrap widths match SVG rendering exactly.
-function wrapText(fontPx: number, text: string, maxWidth: number): string[] {
-  const span = document.createElement("span");
-  span.style.cssText = [
-    `font-family:'KuunariMedCond',sans-serif`,
-    `font-size:${fontPx}px`,
-    `font-feature-settings:"calt" 0,"liga" 0,"clig" 0,"dlig" 0`,
-    "white-space:nowrap",
-    "position:absolute",
-    "left:-9999px",
-    "top:0",
-    "visibility:hidden",
-  ].join(";");
-  document.body.appendChild(span);
+// Measure using an inline SVG with the same embedded font + feature settings
+// as the render pass, so getBBox() widths match the output exactly.
+function wrapText(fontDataUrl: string, fontPx: number, text: string, maxWidth: number): string[] {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.style.cssText = "position:absolute;left:-9999px;top:0;visibility:hidden;width:10000px;height:200px;";
+  const defs = document.createElementNS(ns, "defs");
+  const style = document.createElementNS(ns, "style");
+  style.textContent = `@font-face{font-family:'KM';src:url('${fontDataUrl}') format('opentype');}text{font-family:'KM',sans-serif;font-size:${fontPx}px;font-feature-settings:"calt" 0,"liga" 0,"clig" 0,"dlig" 0;}`;
+  defs.appendChild(style);
+  svg.appendChild(defs);
+  const textEl = document.createElementNS(ns, "text");
+  svg.appendChild(textEl);
+  document.body.appendChild(svg);
+
   const words = text.split(" ");
   const lines: string[] = [];
   let current = "";
   for (const word of words) {
     const test = current ? `${current} ${word}` : word;
-    span.textContent = test;
-    if (span.getBoundingClientRect().width > maxWidth && current) {
+    textEl.textContent = test;
+    if (textEl.getBBox().width > maxWidth && current) {
       lines.push(current);
       current = word;
     } else {
@@ -62,7 +63,7 @@ function wrapText(fontPx: number, text: string, maxWidth: number): string[] {
     }
   }
   if (current) lines.push(current);
-  document.body.removeChild(span);
+  document.body.removeChild(svg);
   return lines;
 }
 
@@ -80,14 +81,8 @@ async function drawGraphic(
   const { photoImg, photoOffset, quoteText, speakerName, outlet } = opts;
   const W = CANVAS_W, H = CANVAS_H;
 
-  try {
-    const [boldFont, medFont] = await Promise.all([
-      new FontFace('KuunariMedCond', 'url(/fonts/Kuunari-MediumCondensed.otf)').load(),
-      new FontFace('KuunariMedCond',     'url(/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf)').load(),
-    ]);
-    document.fonts.add(boldFont);
-    document.fonts.add(medFont);
-  } catch { /* ignore */ }
+  // Load font data URL first — used for both SVG measurement and rendering
+  const fontDataUrl = await getBoldFontDataUrl();
 
   // ── Photo section (top) ──────────────────────────────────────────────────
   if (photoImg) {
@@ -166,7 +161,7 @@ async function drawGraphic(
 
   // ── Quote text ────────────────────────────────────────────────────────────
   const textPad  = 72;
-  const textMaxW = W - textPad * 2 - 40;
+  const textMaxW = W - textPad * 2;
   const qmNatH   = qmImg ? qmImg.naturalHeight : QM_SIZE;
   const quoteTop = SPLIT_Y + (qmImg ? qmNatH * 0.55 : 20) - 60;
 
@@ -194,7 +189,7 @@ async function drawGraphic(
     fontSizePt = pt;
     const px = pt * PT_TO_PX;
     lineH = px * 0.98;
-    lines = wrapText(px, displayQuote, textMaxW);
+    lines = fontDataUrl ? wrapText(fontDataUrl, px, displayQuote, textMaxW) : [];
     if (lines.length * lineH <= H - 100 - quoteTop) break;
   }
 
@@ -209,7 +204,6 @@ async function drawGraphic(
   // attrY is anchored to the last line's baseline, not a full lineH below it.
   const lastLineY = startY + quoteSpan;
   const attrY = lastLineY + 36;
-  const fontDataUrl = await getBoldFontDataUrl();
   if (fontDataUrl) {
     const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const quoteEls = lines.map((line, i) =>
