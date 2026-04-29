@@ -13,6 +13,12 @@ const TEXT_PANEL_H = LOGO_PANEL_Y - TEXT_PANEL_Y; // 213
 const PT_TO_PX     = 96 / 72;
 const MAX_LOGOS    = 8;
 
+// Sharpen SVG filter (feConvolveMatrix unsharp mask) — built once at module load
+const SHARPEN_URL = (() => {
+  const svg = "<svg xmlns='http://www.w3.org/2000/svg'><filter id='sh' color-interpolation-filters='sRGB'><feConvolveMatrix order='3' kernelMatrix='0 -1 0 -1 5 -1 0 -1 0' preserveAlpha='true'/></filter></svg>";
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}#sh")`;
+})();
+
 const SCHOOLS = [
   { slug: "alabama",           name: "Alabama" },
   { slug: "arizona",           name: "Arizona" },
@@ -174,10 +180,23 @@ async function drawGraphic(
     ctx.beginPath();
     ctx.rect(0, 0, W, PHOTO_SPLIT);
     ctx.clip();
-    // Camera Raw simulation: contrast + saturation + brightness boost
-    ctx.filter = filterEnabled ? "contrast(1.32) saturate(1.28) brightness(0.88)" : "none";
-    ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight, dx, dy, dw, dh);
-    ctx.filter = "none";
+
+    if (filterEnabled) {
+      // Pass 1 — colour corrections on an offscreen canvas
+      const off = document.createElement("canvas");
+      off.width = W; off.height = PHOTO_SPLIT;
+      const offCtx = off.getContext("2d")!;
+      offCtx.filter = "contrast(1.32) saturate(1.28) brightness(0.88)";
+      offCtx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight, dx, dy, dw, dh);
+      offCtx.filter = "none";
+      // Pass 2 — sharpen via SVG feConvolveMatrix unsharp-mask kernel
+      ctx.filter = SHARPEN_URL;
+      ctx.drawImage(off, 0, 0);
+      ctx.filter = "none";
+    } else {
+      ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight, dx, dy, dw, dh);
+    }
+
     ctx.restore();
 
     // Gradient fade from photo into dark panel
