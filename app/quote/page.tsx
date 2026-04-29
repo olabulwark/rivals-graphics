@@ -172,16 +172,17 @@ async function drawGraphic(
     ? quoteText.toUpperCase()
     : "QUOTE TEXT GOES HERE";
 
-  // Find the largest font size that fits
-  let fontSize = 82;
-  ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
-  let lines = wrapTextBalanced(ctx, displayQuote, textMaxW);
+  // Pick the largest size from the allowed set that fits vertically
+  const fontSizes = [72, 60, 48, 36];
+  let fontSize = fontSizes[0];
+  let lines: string[] = [];
   let lineH = fontSize * 0.98;
-  while (lines.length * lineH > (H - 100 - quoteTop) && fontSize > 64) {
-    fontSize -= 2;
+  for (const size of fontSizes) {
+    fontSize = size;
     lineH = fontSize * 0.98;
     ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
-    lines = wrapTextBalanced(ctx, displayQuote, textMaxW);
+    lines = wrapText(ctx, displayQuote, textMaxW);
+    if (lines.length * lineH <= H - 100 - quoteTop) break;
   }
 
   const totalQuoteH = lines.length * lineH;
