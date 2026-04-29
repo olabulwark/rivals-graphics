@@ -34,17 +34,27 @@ async function getBoldFontDataUrl(): Promise<string | null> {
   } catch { return null; }
 }
 
-function wrapText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number
-): string[] {
+// DOM-based measurement so wrap widths match SVG rendering exactly.
+function wrapText(fontPx: number, text: string, maxWidth: number): string[] {
+  const span = document.createElement("span");
+  span.style.cssText = [
+    `font-family:'KuunariMedCond',sans-serif`,
+    `font-size:${fontPx}px`,
+    `font-feature-settings:"calt" 0,"liga" 0,"clig" 0,"dlig" 0`,
+    "white-space:nowrap",
+    "position:absolute",
+    "left:-9999px",
+    "top:0",
+    "visibility:hidden",
+  ].join(";");
+  document.body.appendChild(span);
   const words = text.split(" ");
   const lines: string[] = [];
   let current = "";
   for (const word of words) {
     const test = current ? `${current} ${word}` : word;
-    if (ctx.measureText(test).width > maxWidth && current) {
+    span.textContent = test;
+    if (span.getBoundingClientRect().width > maxWidth && current) {
       lines.push(current);
       current = word;
     } else {
@@ -52,30 +62,10 @@ function wrapText(
     }
   }
   if (current) lines.push(current);
+  document.body.removeChild(span);
   return lines;
 }
 
-// Balanced wrap: finds the narrowest column that still produces the same
-// number of lines as greedy, making line lengths more even for centered text.
-function wrapTextBalanced(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number
-): string[] {
-  const greedyLines = wrapText(ctx, text, maxWidth);
-  const N = greedyLines.length;
-  if (N <= 1) return greedyLines;
-
-  // Binary-search for the minimum width that keeps us at N lines
-  let lo = maxWidth / (N + 1);
-  let hi = maxWidth;
-  for (let i = 0; i < 24; i++) {
-    const mid = (lo + hi) / 2;
-    if (wrapText(ctx, text, mid).length <= N) hi = mid;
-    else lo = mid;
-  }
-  return wrapText(ctx, text, hi);
-}
 
 async function drawGraphic(
   ctx: CanvasRenderingContext2D,
@@ -204,8 +194,7 @@ async function drawGraphic(
     fontSizePt = pt;
     const px = pt * PT_TO_PX;
     lineH = px * 0.98;
-    ctx.font = `normal normal ${px}px "KuunariMedCond"`;
-    lines = wrapText(ctx, displayQuote, textMaxW);
+    lines = wrapText(px, displayQuote, textMaxW);
     if (lines.length * lineH <= H - 100 - quoteTop) break;
   }
 
@@ -249,7 +238,7 @@ async function drawGraphic(
     if (svgImg) ctx.drawImage(svgImg, 0, 0, W, H);
   } else {
     // Fallback: direct canvas text
-    ctx.font = `normal normal ${fontSizePx}px "KuunariMedCond"`;
+    ctx.font = `normal normal ${fontSizePx}px "KuunariMedCond", sans-serif`;
     for (let i = 0; i < lines.length; i++) {
       ctx.fillText(lines[i], W / 2, startY + i * lineH);
     }
