@@ -289,7 +289,7 @@ async function drawGraphic(
   const active = logoImgs.filter(Boolean) as HTMLImageElement[];
   if (active.length > 0) {
     const targetH  = 136;
-    const gap      = 16;                  // gap between logos
+    const gap      = 10;                  // gap between logos
     const maxGroupW = W - 120;            // max total group width (60px side margin each)
 
     // Compute each logo's width at target height
