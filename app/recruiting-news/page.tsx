@@ -143,11 +143,12 @@ async function drawGraphic(
     photoImg: HTMLImageElement | null;
     photoOffset: { x: number; y: number };
     photoZoom: number;
+    filterEnabled: boolean;
     headlineText: string;
     logoImgs: (HTMLImageElement | null)[];
   }
 ) {
-  const { photoImg, photoOffset, photoZoom, headlineText, logoImgs } = opts;
+  const { photoImg, photoOffset, photoZoom, filterEnabled, headlineText, logoImgs } = opts;
   const W = CANVAS_W, H = CANVAS_H;
   const fontDataUrl = await getFontDataUrl();
 
@@ -174,7 +175,7 @@ async function drawGraphic(
     ctx.rect(0, 0, W, PHOTO_SPLIT);
     ctx.clip();
     // Camera Raw simulation: contrast + saturation + brightness boost
-    ctx.filter = "contrast(1.08) saturate(1.2) brightness(0.93)";
+    ctx.filter = filterEnabled ? "contrast(1.08) saturate(1.2) brightness(0.93)" : "none";
     ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight, dx, dy, dw, dh);
     ctx.filter = "none";
     ctx.restore();
@@ -306,10 +307,11 @@ export default function RecruitingNewsPage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const searchRef    = useRef<HTMLDivElement>(null);
 
-  const [photoUrl,      setPhotoUrl]      = useState<string | null>(null);
-  const [photoOffset,   setPhotoOffset]   = useState({ x: 0, y: 0 });
-  const [photoZoom,     setPhotoZoom]     = useState(1.0);
-  const [photoDragging, setPhotoDragging] = useState(false);
+  const [photoUrl,       setPhotoUrl]       = useState<string | null>(null);
+  const [photoOffset,    setPhotoOffset]    = useState({ x: 0, y: 0 });
+  const [photoZoom,      setPhotoZoom]      = useState(1.0);
+  const [photoDragging,  setPhotoDragging]  = useState(false);
+  const [filterEnabled,  setFilterEnabled]  = useState(true);
 
   const [headlineText,  setHeadlineText]  = useState("");
   const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
@@ -435,11 +437,11 @@ export default function RecruitingNewsPage() {
       const logoImgs = await Promise.all(
         selectedSlugs.map(slug => loadImage(`/logos/${slug}.png`))
       );
-      await drawGraphic(ctx, { photoImg, photoOffset, photoZoom, headlineText, logoImgs });
+      await drawGraphic(ctx, { photoImg, photoOffset, photoZoom, filterEnabled, headlineText, logoImgs });
     } finally {
       setIsRendering(false);
     }
-  }, [photoUrl, photoOffset, photoZoom, headlineText, selectedSlugs]);
+  }, [photoUrl, photoOffset, photoZoom, filterEnabled, headlineText, selectedSlugs]);
 
   useEffect(() => { renderCanvas(); }, [renderCanvas]);
 
@@ -517,17 +519,30 @@ export default function RecruitingNewsPage() {
               </div>
 
               {photoUrl && (
-                <div className="mt-3 flex items-center gap-3">
-                  <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                  </svg>
-                  <input
-                    type="range" min="1.0" max="4.0" step="0.05"
-                    value={photoZoom}
-                    onChange={e => setPhotoZoom(parseFloat(e.target.value))}
-                    className="flex-1 accent-red-500"
-                  />
-                  <span className="text-gray-400 text-xs w-8 text-right">{photoZoom.toFixed(1)}×</span>
+                <div className="mt-3 flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                    </svg>
+                    <input
+                      type="range" min="1.0" max="4.0" step="0.05"
+                      value={photoZoom}
+                      onChange={e => setPhotoZoom(parseFloat(e.target.value))}
+                      className="flex-1 accent-red-500"
+                    />
+                    <span className="text-gray-400 text-xs w-8 text-right">{photoZoom.toFixed(1)}×</span>
+                  </div>
+                  <button
+                    onClick={() => setFilterEnabled(prev => !prev)}
+                    className={`self-start flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                      filterEnabled
+                        ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
+                        : 'bg-gray-800 border-gray-700 text-gray-500'
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${filterEnabled ? 'bg-orange-400' : 'bg-gray-600'}`} />
+                    Camera filter {filterEnabled ? 'ON' : 'OFF'}
+                  </button>
                 </div>
               )}
             </div>
