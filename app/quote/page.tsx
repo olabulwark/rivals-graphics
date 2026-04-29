@@ -186,7 +186,7 @@ async function drawGraphic(
   // Outlet (blue) zone: H-60 → H (1080)
 
   // Speaker baseline centered in red zone
-  const SPEAKER_Y = Math.round((ZONE_QUOTE_END + ZONE_SPEAKER_END) / 2) + 11; // ≈ 1001
+  const SPEAKER_Y = Math.round((ZONE_QUOTE_END + ZONE_SPEAKER_END) / 2) - 4;  // ≈ 986
   // Outlet baseline centered in blue zone
   const OUTLET_Y  = Math.round((ZONE_SPEAKER_END + H) / 2) + 10;              // ≈ 1060
 
