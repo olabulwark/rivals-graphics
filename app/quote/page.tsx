@@ -246,7 +246,7 @@ async function drawGraphic(
     const svgUrl  = URL.createObjectURL(svgBlob);
     const svgImg  = await loadImage(svgUrl);
     URL.revokeObjectURL(svgUrl);
-    if (svgImg) ctx.drawImage(svgImg, 0, 0);
+    if (svgImg) ctx.drawImage(svgImg, 0, 0, W, H);
   } else {
     // Fallback: direct canvas text
     ctx.font = `normal normal ${fontSizePx}px "KuunariMedCond"`;
