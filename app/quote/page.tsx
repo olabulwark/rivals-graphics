@@ -18,6 +18,22 @@ async function loadImage(src: string): Promise<HTMLImageElement | null> {
   } catch { return null; }
 }
 
+// Cache the bold font as a base64 data URL so we can embed it in SVG
+let _boldFontDataUrl: string | null = null;
+async function getBoldFontDataUrl(): Promise<string | null> {
+  if (_boldFontDataUrl !== null) return _boldFontDataUrl;
+  try {
+    const resp = await fetch('/fonts/Akzidenz-Grotesk%20BQ%20Bold%20Condensed.ttf');
+    const blob = await resp.blob();
+    _boldFontDataUrl = await new Promise<string>(res => {
+      const reader = new FileReader();
+      reader.onload = () => res(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+    return _boldFontDataUrl;
+  } catch { return null; }
+}
+
 function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -199,9 +215,34 @@ async function drawGraphic(
   const contentH = totalQuoteH + attributionH;
   const startY = quoteTop + Math.max(0, (H - 60 - quoteTop - contentH) / 2) + fontSizePx;
 
-  ctx.font = `normal normal ${fontSizePx}px "AkzidenzBoldCond"`;
-  for (let i = 0; i < lines.length; i++) {
-    ctx.fillText(lines[i], W / 2, startY + i * lineH);
+  // Render quote text via SVG with font embedded + features disabled.
+  // This bypasses the canvas text renderer, which applies OpenType calt/liga
+  // substitutions that cause glyph height inconsistencies.
+  const fontDataUrl = await getBoldFontDataUrl();
+  if (fontDataUrl) {
+    const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const textEls = lines.map((line, i) =>
+      `<text x="${W / 2}" y="${Math.round(startY + i * lineH)}" text-anchor="middle">${esc(line)}</text>`
+    ).join('\n');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+      <defs><style>
+        @font-face { font-family:'AkzEmbed'; src:url('${fontDataUrl}') format('truetype'); }
+        text { font-family:'AkzEmbed',sans-serif; font-size:${fontSizePx}px; fill:white;
+               font-feature-settings:"calt" 0,"liga" 0,"clig" 0,"dlig" 0,"kern" 0; }
+      </style></defs>
+      ${textEls}
+    </svg>`;
+    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const svgUrl  = URL.createObjectURL(svgBlob);
+    const svgImg  = await loadImage(svgUrl);
+    URL.revokeObjectURL(svgUrl);
+    if (svgImg) ctx.drawImage(svgImg, 0, 0);
+  } else {
+    // Fallback: direct canvas text
+    ctx.font = `normal normal ${fontSizePx}px "AkzidenzBoldCond"`;
+    for (let i = 0; i < lines.length; i++) {
+      ctx.fillText(lines[i], W / 2, startY + i * lineH);
+    }
   }
 
   // ── DEBUG: font size indicator (temporary) ────────────────────────────────
