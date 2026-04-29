@@ -23,7 +23,7 @@ let _boldFontDataUrl: string | null = null;
 async function getBoldFontDataUrl(): Promise<string | null> {
   if (_boldFontDataUrl !== null) return _boldFontDataUrl;
   try {
-    const resp = await fetch('/fonts/Akzidenz-Grotesk%20BQ%20Bold%20Condensed.ttf');
+    const resp = await fetch('/fonts/Kuunari-MediumCondensed.otf');
     const blob = await resp.blob();
     _boldFontDataUrl = await new Promise<string>(res => {
       const reader = new FileReader();
@@ -92,7 +92,7 @@ async function drawGraphic(
 
   try {
     const [boldFont, medFont] = await Promise.all([
-      new FontFace('AkzidenzBoldCond', 'url(/fonts/Akzidenz-Grotesk%20BQ%20Bold%20Condensed.ttf)').load(),
+      new FontFace('KuunariMedCond', 'url(/fonts/Kuunari-MediumCondensed.otf)').load(),
       new FontFace('AkzidenzMedCond',     'url(/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf)').load(),
     ]);
     document.fonts.add(boldFont);
@@ -204,7 +204,7 @@ async function drawGraphic(
     fontSizePt = pt;
     const px = pt * PT_TO_PX;
     lineH = px * 0.98;
-    ctx.font = `normal normal ${px}px "AkzidenzBoldCond"`;
+    ctx.font = `normal normal ${px}px "KuunariMedCond"`;
     lines = wrapText(ctx, displayQuote, textMaxW);
     if (lines.length * lineH <= H - 100 - quoteTop) break;
   }
@@ -226,8 +226,8 @@ async function drawGraphic(
     ).join('\n');
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
       <defs><style>
-        @font-face { font-family:'AkzEmbed'; src:url('${fontDataUrl}') format('truetype'); }
-        text { font-family:'AkzEmbed',sans-serif; font-size:${fontSizePx}px; fill:white;
+        @font-face { font-family:'KuunariEmbed'; src:url('${fontDataUrl}') format('opentype'); }
+        text { font-family:'KuunariEmbed',sans-serif; font-size:${fontSizePx}px; fill:white;
                font-feature-settings:"calt" 0,"liga" 0,"clig" 0,"dlig" 0,"kern" 0; }
       </style></defs>
       ${textEls}
@@ -239,7 +239,7 @@ async function drawGraphic(
     if (svgImg) ctx.drawImage(svgImg, 0, 0);
   } else {
     // Fallback: direct canvas text
-    ctx.font = `normal normal ${fontSizePx}px "AkzidenzBoldCond"`;
+    ctx.font = `normal normal ${fontSizePx}px "KuunariMedCond"`;
     for (let i = 0; i < lines.length; i++) {
       ctx.fillText(lines[i], W / 2, startY + i * lineH);
     }
@@ -350,8 +350,8 @@ export default function QuotePage() {
   return (
     <div className="min-h-screen bg-gray-950">
       <style>{`
-        @font-face { font-family: 'AkzidenzBoldCond'; src: url('/fonts/Akzidenz-Grotesk%20BQ%20Bold%20Condensed.ttf') format('truetype'); }
-        @font-face { font-family: 'AkzidenzMedCond'; src: url('/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf') format('truetype'); }
+        @font-face { font-family: 'KuunariMedCond'; src: url('/fonts/Kuunari-MediumCondensed.otf') format('opentype'); }
+        @font-face { font-family: 'AkzidenzMedCond'; src: url('/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf') format('opentype'); }
       `}</style>
 
       <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-10">
