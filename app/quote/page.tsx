@@ -199,13 +199,16 @@ async function drawGraphic(
   }
 
   const fontSizePx = fontSizePt * PT_TO_PX;
-  const totalQuoteH = lines.length * lineH;
+  // Distance from first baseline to last baseline
+  const quoteSpan = (lines.length - 1) * lineH;
   const attributionH = 80;
-  const contentH = totalQuoteH + attributionH;
+  const contentH = quoteSpan + fontSizePx + attributionH;
   const startY = quoteTop + Math.max(0, (H - 60 - quoteTop - contentH) / 2) + fontSizePx;
 
   // Render all text via SVG with font embedded + features disabled.
-  const attrY = startY + totalQuoteH + 8;
+  // attrY is anchored to the last line's baseline, not a full lineH below it.
+  const lastLineY = startY + quoteSpan;
+  const attrY = lastLineY + 36;
   const fontDataUrl = await getBoldFontDataUrl();
   if (fontDataUrl) {
     const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
