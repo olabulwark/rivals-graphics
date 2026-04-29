@@ -93,7 +93,7 @@ async function drawGraphic(
   try {
     const [boldFont, medFont] = await Promise.all([
       new FontFace('KuunariMedCond', 'url(/fonts/Kuunari-MediumCondensed.otf)').load(),
-      new FontFace('AkzidenzMedCond',     'url(/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf)').load(),
+      new FontFace('KuunariMedCond',     'url(/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf)').load(),
     ]);
     document.fonts.add(boldFont);
     document.fonts.add(medFont);
@@ -250,13 +250,13 @@ async function drawGraphic(
 
   if (speakerName) {
     ctx.fillStyle = "#ffffff";
-    ctx.font = `32px "AkzidenzMedCond", sans-serif`;
+    ctx.font = `32px "KuunariMedCond", sans-serif`;
     ctx.fillText(speakerName, W / 2, attrY);
   }
 
   if (outlet) {
     ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.font = `28px "AkzidenzMedCond", sans-serif`;
+    ctx.font = `28px "KuunariMedCond", sans-serif`;
     ctx.fillText(`to ${outlet}`, W / 2, attrY + 40);
   }
 }
@@ -340,7 +340,7 @@ export default function QuotePage() {
     <div className="min-h-screen bg-gray-950">
       <style>{`
         @font-face { font-family: 'KuunariMedCond'; src: url('/fonts/Kuunari-MediumCondensed.otf') format('opentype'); }
-        @font-face { font-family: 'AkzidenzMedCond'; src: url('/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf') format('opentype'); }
+        @font-face { font-family: 'KuunariMedCond'; src: url('/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf') format('opentype'); }
       `}</style>
 
       <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-10">
