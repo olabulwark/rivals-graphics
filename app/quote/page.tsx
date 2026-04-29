@@ -237,6 +237,16 @@ async function drawGraphic(
     const svgImg  = await loadImage(svgUrl);
     URL.revokeObjectURL(svgUrl);
     if (svgImg) ctx.drawImage(svgImg, 0, 0, W, H);
+
+  // ── DEBUG: zone overlays (temporary) ─────────────────────────────────────
+  ctx.save();
+  ctx.fillStyle = "rgba(0,255,0,0.25)";
+  ctx.fillRect(0, SPLIT_Y, W, ZONE_QUOTE_END - SPLIT_Y);
+  ctx.fillStyle = "rgba(255,0,0,0.35)";
+  ctx.fillRect(0, ZONE_QUOTE_END, W, ZONE_SPEAKER_END - ZONE_QUOTE_END);
+  ctx.fillStyle = "rgba(0,0,255,0.35)";
+  ctx.fillRect(0, ZONE_SPEAKER_END, W, H - ZONE_SPEAKER_END);
+  ctx.restore();
   } else {
     // Fallback: direct canvas text
     ctx.font = `normal normal ${fontSizePx}px "KuunariMedCond", sans-serif`;
