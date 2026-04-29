@@ -76,7 +76,7 @@ async function drawGraphic(
 
   try {
     const [boldFont, medFont] = await Promise.all([
-      new FontFace('AkzidenzBoldCondAlt', 'url(/fonts/Akzidenz-Grotesk%20BQ%20Bold%20Condensed%20Alt.ttf)').load(),
+      new FontFace('AkzidenzBoldCond', 'url(/fonts/Akzidenz-Grotesk%20BQ%20Bold%20Condensed.ttf)').load(),
       new FontFace('AkzidenzMedCond',     'url(/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf)').load(),
     ]);
     document.fonts.add(boldFont);
@@ -180,7 +180,7 @@ async function drawGraphic(
   for (const size of fontSizes) {
     fontSize = size;
     lineH = fontSize * 0.98;
-    ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
+    ctx.font = `${fontSize}px "AkzidenzBoldCond", sans-serif`;
     lines = wrapText(ctx, displayQuote, textMaxW);
     if (lines.length * lineH <= H - 100 - quoteTop) break;
   }
@@ -190,7 +190,7 @@ async function drawGraphic(
   const contentH = totalQuoteH + attributionH;
   const startY = quoteTop + Math.max(0, (H - 60 - quoteTop - contentH) / 2) + fontSize;
 
-  ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
+  ctx.font = `${fontSize}px "AkzidenzBoldCond", sans-serif`;
   for (let i = 0; i < lines.length; i++) {
     ctx.fillText(lines[i], W / 2, startY + i * lineH);
   }
@@ -289,7 +289,7 @@ export default function QuotePage() {
   return (
     <div className="min-h-screen bg-gray-950">
       <style>{`
-        @font-face { font-family: 'AkzidenzBoldCondAlt'; src: url('/fonts/Akzidenz-Grotesk%20BQ%20Bold%20Condensed%20Alt.ttf') format('truetype'); }
+        @font-face { font-family: 'AkzidenzBoldCond'; src: url('/fonts/Akzidenz-Grotesk%20BQ%20Bold%20Condensed.ttf') format('truetype'); }
         @font-face { font-family: 'AkzidenzMedCond'; src: url('/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf') format('truetype'); }
       `}</style>
 
