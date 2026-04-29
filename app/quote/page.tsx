@@ -164,6 +164,12 @@ async function drawGraphic(
   const qmNatH   = qmImg ? qmImg.naturalHeight : QM_SIZE;
   const quoteTop = SPLIT_Y + (qmImg ? qmNatH * 0.55 : 20) - 60;
 
+  // Disable OpenType contextual alternates and ligatures — these can cause
+  // certain glyphs to render at different heights than expected.
+  ctx.fontKerning = "none";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ("fontFeatureSettings" in ctx) (ctx as any).fontFeatureSettings = '"calt" 0, "liga" 0, "clig" 0, "dlig" 0';
+
   ctx.fillStyle = "#ffffff";
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
@@ -182,7 +188,7 @@ async function drawGraphic(
     fontSizePt = pt;
     const px = pt * PT_TO_PX;
     lineH = px * 0.98;
-    ctx.font = `${px}px "AkzidenzBoldCond", sans-serif`;
+    ctx.font = `normal normal ${px}px "AkzidenzBoldCond"`;
     lines = wrapText(ctx, displayQuote, textMaxW);
     if (lines.length * lineH <= H - 100 - quoteTop) break;
   }
@@ -193,7 +199,7 @@ async function drawGraphic(
   const contentH = totalQuoteH + attributionH;
   const startY = quoteTop + Math.max(0, (H - 60 - quoteTop - contentH) / 2) + fontSizePx;
 
-  ctx.font = `${fontSizePx}px "AkzidenzBoldCond", sans-serif`;
+  ctx.font = `normal normal ${fontSizePx}px "AkzidenzBoldCond"`;
   for (let i = 0; i < lines.length; i++) {
     ctx.fillText(lines[i], W / 2, startY + i * lineH);
   }
