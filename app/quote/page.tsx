@@ -75,6 +75,7 @@ async function drawGraphic(
     photoImg: HTMLImageElement | null;
     photoOffset: { x: number; y: number };
     photoZoom: number;
+    logoChoice: 'on3' | 'rivals';
     quoteText: string;
     speakerName: string;
     outlet: string;
@@ -86,7 +87,7 @@ async function drawGraphic(
   }
 ) {
   const {
-    photoImg, photoOffset, photoZoom, quoteText, speakerName, outlet, photoCredit,
+    photoImg, photoOffset, photoZoom, logoChoice, quoteText, speakerName, outlet, photoCredit,
     headShotImg, headShotOffset, headShotZoom, circlePos,
   } = opts;
   const W = CANVAS_W, H = CANVAS_H;
@@ -140,11 +141,13 @@ async function drawGraphic(
       totalLum += 0.299 * sampleData[i] + 0.587 * sampleData[i + 1] + 0.114 * sampleData[i + 2];
     }
     const avgLum = totalLum / (sampleData.length / 4);
-    const on3Src = avgLum > 140 ? "/on3-dark.png" : "/on3-light.png";
-    const on3Img = await loadImage(on3Src);
-    if (on3Img) {
-      const on3H = logoW * (on3Img.naturalHeight / on3Img.naturalWidth);
-      ctx.drawImage(on3Img, W - logoW - logoPad, logoPad, logoW, on3H);
+    const logoSrc = logoChoice === 'rivals'
+      ? (avgLum > 140 ? "/rivals-black1.png" : "/rivals-white1.png")
+      : (avgLum > 140 ? "/on3-dark.png"      : "/on3-light.png");
+    const logoImg = await loadImage(logoSrc);
+    if (logoImg) {
+      const logoH = logoW * (logoImg.naturalHeight / logoImg.naturalWidth);
+      ctx.drawImage(logoImg, W - logoW - logoPad, logoPad, logoW, logoH);
     }
 
     // ── Photo credit — upper left, auto light/dark ───────────────────────
@@ -351,6 +354,7 @@ export default function QuotePage() {
   const [photoOffset,     setPhotoOffset]     = useState({ x: 0, y: 0 });
   const [photoZoom,       setPhotoZoom]       = useState(1.0);
   const [photoDragging,   setPhotoDragging]   = useState(false);
+  const [logoChoice,      setLogoChoice]      = useState<'on3' | 'rivals'>('on3');
 
   // Headshot overlay state
   const [headShotUrl,      setHeadShotUrl]      = useState<string | null>(null);
@@ -493,14 +497,14 @@ export default function QuotePage() {
       const photoImg    = photoPreviewUrl ? await loadImage(photoPreviewUrl) : null;
       const headShotImg = headShotUrl     ? await loadImage(headShotUrl)     : null;
       await drawGraphic(ctx, {
-        photoImg, photoOffset, photoZoom,
+        photoImg, photoOffset, photoZoom, logoChoice,
         quoteText, speakerName, outlet, photoCredit,
         headShotImg, headShotOffset, headShotZoom, circlePos,
       });
     } finally {
       setIsRendering(false);
     }
-  }, [photoPreviewUrl, photoOffset, photoZoom,
+  }, [photoPreviewUrl, photoOffset, photoZoom, logoChoice,
       quoteText, speakerName, outlet, photoCredit,
       headShotUrl, headShotOffset, headShotZoom, circlePos]);
 
@@ -594,6 +598,33 @@ export default function QuotePage() {
                   <span className="text-gray-400 text-xs w-8 text-right">{photoZoom.toFixed(1)}×</span>
                 </div>
               )}
+            </div>
+
+            {/* Logo toggle */}
+            <div>
+              <label className="block text-gray-400 text-sm mb-1.5">Logo</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setLogoChoice('on3')}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    logoChoice === 'on3'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  On3
+                </button>
+                <button
+                  onClick={() => setLogoChoice('rivals')}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    logoChoice === 'rivals'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  Rivals
+                </button>
+              </div>
             </div>
 
             {/* Photo credit */}
