@@ -139,7 +139,8 @@ async function drawGraphic(
   // ── Quote text ────────────────────────────────────────────────────────────
   const textPad  = 60;
   const textMaxW = W - textPad * 2;
-  const quoteTop = SPLIT_Y + (qmImg ? QM_SIZE * 0.55 : 20) - 60;
+  const qmNatH   = qmImg ? qmImg.naturalHeight : QM_SIZE;
+  const quoteTop = SPLIT_Y + (qmImg ? qmNatH * 0.55 : 20) - 60;
 
   ctx.fillStyle = "#ffffff";
   ctx.textAlign = "center";
@@ -153,9 +154,10 @@ async function drawGraphic(
   let fontSize = 82;
   ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
   let lines = wrapText(ctx, displayQuote, textMaxW);
-  const lineH = fontSize * 0.98;
+  let lineH = fontSize * 0.98;
   while (lines.length * lineH > (H - 100 - quoteTop) && fontSize > 64) {
     fontSize -= 2;
+    lineH = fontSize * 0.98;
     ctx.font = `${fontSize}px "AkzidenzBoldCondAlt", sans-serif`;
     lines = wrapText(ctx, displayQuote, textMaxW);
   }
