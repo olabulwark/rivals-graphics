@@ -76,9 +76,10 @@ async function drawGraphic(
     quoteText: string;
     speakerName: string;
     outlet: string;
+    photoCredit: string;
   }
 ) {
-  const { photoImg, photoOffset, quoteText, speakerName, outlet } = opts;
+  const { photoImg, photoOffset, quoteText, speakerName, outlet, photoCredit } = opts;
   const W = CANVAS_W, H = CANVAS_H;
 
   // Load font data URL first — used for both SVG measurement and rendering
@@ -135,6 +136,28 @@ async function drawGraphic(
     if (on3Img) {
       const on3H = logoW * (on3Img.naturalHeight / on3Img.naturalWidth);
       ctx.drawImage(on3Img, W - logoW - logoPad, logoPad, logoW, on3H);
+    }
+
+    // ── Photo credit — upper right, auto light/dark ───────────────────────
+    if (photoCredit) {
+      const creditPad = 20;
+      const creditFontSize = 24;
+      const creditText = `Photo: ${photoCredit}`;
+      // Sample brightness where the credit will sit (top-right, below On3 logo)
+      const creditSampleY = logoPad + 70;
+      const creditSampleData = ctx.getImageData(W - 280 - creditPad, creditSampleY, 280, 30).data;
+      let creditLum = 0;
+      for (let i = 0; i < creditSampleData.length; i += 4) {
+        creditLum += 0.299 * creditSampleData[i] + 0.587 * creditSampleData[i + 1] + 0.114 * creditSampleData[i + 2];
+      }
+      const creditAvgLum = creditLum / (creditSampleData.length / 4);
+      ctx.save();
+      ctx.font = `${creditFontSize}px sans-serif`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = creditAvgLum > 140 ? "rgba(0,0,0,0.75)" : "rgba(255,255,255,0.85)";
+      ctx.fillText(creditText, W - creditPad, creditSampleY);
+      ctx.restore();
     }
   } else {
     // Placeholder
@@ -238,16 +261,6 @@ async function drawGraphic(
     URL.revokeObjectURL(svgUrl);
     if (svgImg) ctx.drawImage(svgImg, 0, 0, W, H);
 
-  // ── DEBUG: zone overlays (temporary) ─────────────────────────────────────
-  ctx.save();
-  ctx.fillStyle = "rgba(0,255,0,0.25)";
-  ctx.fillRect(0, SPLIT_Y, W, ZONE_QUOTE_END - SPLIT_Y);
-  ctx.fillStyle = "rgba(255,0,0,0.35)";
-  ctx.fillRect(0, ZONE_QUOTE_END, W, ZONE_SPEAKER_END - ZONE_QUOTE_END);
-  ctx.fillStyle = "rgba(0,0,255,0.35)";
-  ctx.fillRect(0, ZONE_SPEAKER_END, W, H - ZONE_SPEAKER_END);
-  ctx.restore();
-
   } else {
     // Fallback: direct canvas text
     ctx.font = `normal normal ${fontSizePx}px "KuunariMedCond", sans-serif`;
@@ -279,6 +292,7 @@ export default function QuotePage() {
   const [quoteText,     setQuoteText]     = useState("");
   const [speakerName,   setSpeakerName]   = useState("");
   const [outlet,        setOutlet]        = useState("");
+  const [photoCredit,   setPhotoCredit]   = useState("");
   const [isRendering,   setIsRendering]   = useState(false);
 
   const isPanning  = useRef(false);
@@ -325,11 +339,11 @@ export default function QuotePage() {
     setIsRendering(true);
     try {
       const photoImg = photoPreviewUrl ? await loadImage(photoPreviewUrl) : null;
-      await drawGraphic(ctx, { photoImg, photoOffset, quoteText, speakerName, outlet });
+      await drawGraphic(ctx, { photoImg, photoOffset, quoteText, speakerName, outlet, photoCredit });
     } finally {
       setIsRendering(false);
     }
-  }, [photoPreviewUrl, photoOffset, quoteText, speakerName, outlet]);
+  }, [photoPreviewUrl, photoOffset, quoteText, speakerName, outlet, photoCredit]);
 
   useEffect(() => { renderCanvas(); }, [renderCanvas]);
 
@@ -400,6 +414,18 @@ export default function QuotePage() {
                 <input ref={photoInputRef} type="file" accept="image/*" className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoFile(f); }} />
               </div>
+            </div>
+
+            {/* Photo credit */}
+            <div>
+              <label className="block text-gray-400 text-sm mb-1.5">Photo credit</label>
+              <input
+                type="text"
+                value={photoCredit}
+                onChange={e => setPhotoCredit(e.target.value)}
+                placeholder="e.g. Imagn"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm"
+              />
             </div>
 
             {/* Quote */}
