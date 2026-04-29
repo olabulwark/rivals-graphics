@@ -611,7 +611,7 @@ export default function QuotePage() {
             {/* Headshot Overlay */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-white font-semibold text-lg">Headshot Overlay</h2>
+                <h2 className="text-white font-semibold text-lg">Secondary Photo</h2>
                 <span className="text-gray-500 text-xs">Optional</span>
               </div>
               <div
@@ -670,7 +670,7 @@ export default function QuotePage() {
                           : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
                       }`}
                     >
-                      Move frame
+                      Move Frame
                     </button>
                     <button
                       onClick={() => setHeadShotMode('pan')}
@@ -680,7 +680,7 @@ export default function QuotePage() {
                           : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
                       }`}
                     >
-                      Pan headshot
+                      Move Secondary Photo
                     </button>
                   </div>
                   <button
@@ -725,7 +725,7 @@ export default function QuotePage() {
               <h2 className="text-white font-semibold text-lg mb-3">Attribution</h2>
               <div className="flex flex-col gap-3">
                 <div>
-                  <label className="block text-gray-400 text-sm mb-1.5">Who said it</label>
+                  <label className="block text-gray-400 text-sm mb-1.5">Who</label>
                   <input
                     type="text"
                     value={speakerName}
@@ -735,7 +735,7 @@ export default function QuotePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-400 text-sm mb-1.5">Who they said it to</label>
+                  <label className="block text-gray-400 text-sm mb-1.5">About/To</label>
                   <input
                     type="text"
                     value={outlet}
