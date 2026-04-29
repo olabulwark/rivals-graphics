@@ -139,7 +139,7 @@ async function drawGraphic(
   // ── Quote text ────────────────────────────────────────────────────────────
   const textPad  = 60;
   const textMaxW = W - textPad * 2;
-  const quoteTop = SPLIT_Y + (qmImg ? QM_SIZE * 0.55 : 20) - 75;
+  const quoteTop = SPLIT_Y + (qmImg ? QM_SIZE * 0.55 : 20) - 60;
 
   ctx.fillStyle = "#ffffff";
   ctx.textAlign = "center";
