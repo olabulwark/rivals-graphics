@@ -196,14 +196,13 @@ async function drawGraphic(
   const fontSizePx = fontSizePt * PT_TO_PX;
   // Distance from first baseline to last baseline
   const quoteSpan = (lines.length - 1) * lineH;
-  const attributionH = 80;
-  const contentH = quoteSpan + fontSizePx + attributionH;
-  const startY = quoteTop + Math.max(0, (H - 60 - quoteTop - contentH) / 2) + fontSizePx;
+  // Vertically center the quote block within the dark region (SPLIT_Y → H)
+  const darkMid = (SPLIT_Y + H) / 2;
+  const startY = Math.round(darkMid - quoteSpan / 2);
 
-  // Render all text via SVG with font embedded + features disabled.
-  // attrY is anchored to the last line's baseline, not a full lineH below it.
+  // Attribution sits 39px below the last line's baseline
   const lastLineY = startY + quoteSpan;
-  const attrY = lastLineY + 36;
+  const attrY = lastLineY + 39;
   if (fontDataUrl) {
     const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const quoteEls = lines.map((line, i) =>
