@@ -196,7 +196,7 @@ async function drawGraphic(
     }
     const hsAvgLum = hsLum / (hsData.length / 4);
     const borderColor = hsAvgLum > 128 ? "#111111" : "#ffffff";
-    const borderWidth = 5;
+    const borderWidth = 9;
 
     // Scale headshot to cover the circle, then apply user zoom
     const hsAspect = headShotImg.naturalWidth / headShotImg.naturalHeight;
