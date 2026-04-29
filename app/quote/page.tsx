@@ -215,22 +215,32 @@ async function drawGraphic(
   const contentH = totalQuoteH + attributionH;
   const startY = quoteTop + Math.max(0, (H - 60 - quoteTop - contentH) / 2) + fontSizePx;
 
-  // Render quote text via SVG with font embedded + features disabled.
-  // This bypasses the canvas text renderer, which applies OpenType calt/liga
-  // substitutions that cause glyph height inconsistencies.
+  // Render all text via SVG with font embedded + features disabled.
+  const attrY = startY + totalQuoteH + 8;
   const fontDataUrl = await getBoldFontDataUrl();
   if (fontDataUrl) {
     const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const textEls = lines.map((line, i) =>
-      `<text x="${W / 2}" y="${Math.round(startY + i * lineH)}" text-anchor="middle">${esc(line)}</text>`
+    const quoteEls = lines.map((line, i) =>
+      `<text class="q" x="${W / 2}" y="${Math.round(startY + i * lineH)}" text-anchor="middle">${esc(line)}</text>`
     ).join('\n');
+    const speakerEl = speakerName
+      ? `<text class="spk" x="${W / 2}" y="${Math.round(attrY)}" text-anchor="middle">${esc(speakerName)}</text>`
+      : '';
+    const outletEl = outlet
+      ? `<text class="out" x="${W / 2}" y="${Math.round(attrY + 40)}" text-anchor="middle">${esc(`to ${outlet}`)}</text>`
+      : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
       <defs><style>
         @font-face { font-family:'KuunariEmbed'; src:url('${fontDataUrl}') format('opentype'); }
-        text { font-family:'KuunariEmbed',sans-serif; font-size:${fontSizePx}px; fill:white;
+        text { font-family:'KuunariEmbed',sans-serif;
                font-feature-settings:"calt" 0,"liga" 0,"clig" 0,"dlig" 0,"kern" 0; }
+        .q   { font-size:${fontSizePx}px; fill:white; }
+        .spk { font-size:32px; fill:white; }
+        .out { font-size:28px; fill:rgba(255,255,255,0.5); }
       </style></defs>
-      ${textEls}
+      ${quoteEls}
+      ${speakerEl}
+      ${outletEl}
     </svg>`;
     const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
     const svgUrl  = URL.createObjectURL(svgBlob);
@@ -243,21 +253,16 @@ async function drawGraphic(
     for (let i = 0; i < lines.length; i++) {
       ctx.fillText(lines[i], W / 2, startY + i * lineH);
     }
-  }
-
-  // ── Attribution ───────────────────────────────────────────────────────────
-  const attrY = startY + totalQuoteH + 8;
-
-  if (speakerName) {
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `32px "KuunariMedCond", sans-serif`;
-    ctx.fillText(speakerName, W / 2, attrY);
-  }
-
-  if (outlet) {
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.font = `28px "KuunariMedCond", sans-serif`;
-    ctx.fillText(`to ${outlet}`, W / 2, attrY + 40);
+    if (speakerName) {
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `32px "KuunariMedCond", sans-serif`;
+      ctx.fillText(speakerName, W / 2, attrY);
+    }
+    if (outlet) {
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.font = `28px "KuunariMedCond", sans-serif`;
+      ctx.fillText(`to ${outlet}`, W / 2, attrY + 40);
+    }
   }
 }
 
