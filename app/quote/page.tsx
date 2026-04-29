@@ -131,10 +131,9 @@ async function drawGraphic(
   // ── Quote mark image ──────────────────────────────────────────────────────
   const qmImg = await loadImage("/quote.png");
   if (qmImg) {
-    const qmW = QM_SIZE * (qmImg.naturalWidth / qmImg.naturalHeight);
-    const qmX = (W - qmW) / 2;
+    const qmX = (W - qmImg.naturalWidth) / 2;
     const qmY = 650;   // fixed 650px from top
-    ctx.drawImage(qmImg, qmX, qmY, qmW, QM_SIZE);
+    ctx.drawImage(qmImg, qmX, qmY);
   }
 
   // ── Quote text ────────────────────────────────────────────────────────────
