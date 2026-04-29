@@ -6,6 +6,7 @@ const CANVAS_W = 1080;
 const CANVAS_H = 1080;
 const SPLIT_Y  = 750;   // where photo ends and dark section begins
 const QM_SIZE  = 130;   // quote mark image height
+const CIRCLE_R = 125;   // headshot circle radius → 250 px diameter
 
 async function loadImage(src: string): Promise<HTMLImageElement | null> {
   try {
@@ -77,9 +78,15 @@ async function drawGraphic(
     speakerName: string;
     outlet: string;
     photoCredit: string;
+    headShotImg: HTMLImageElement | null;
+    headShotOffset: { x: number; y: number };
+    circlePos: { x: number; y: number };
   }
 ) {
-  const { photoImg, photoOffset, quoteText, speakerName, outlet, photoCredit } = opts;
+  const {
+    photoImg, photoOffset, quoteText, speakerName, outlet, photoCredit,
+    headShotImg, headShotOffset, circlePos,
+  } = opts;
   const W = CANVAS_W, H = CANVAS_H;
 
   // Load font data URL first — used for both SVG measurement and rendering
@@ -138,12 +145,11 @@ async function drawGraphic(
       ctx.drawImage(on3Img, W - logoW - logoPad, logoPad, logoW, on3H);
     }
 
-    // ── Photo credit — upper right, auto light/dark ───────────────────────
+    // ── Photo credit — upper left, auto light/dark ───────────────────────
     if (photoCredit) {
       const creditPad = 12;
       const creditFontSize = 18;
       const creditText = `Photo: ${photoCredit}`;
-      // Sample brightness where the credit will sit (top-left)
       const creditSampleY = creditPad;
       const creditSampleData = ctx.getImageData(creditPad, creditSampleY, 280, 30).data;
       let creditLum = 0;
@@ -170,6 +176,66 @@ async function drawGraphic(
     ctx.fillText("Upload a photo", W / 2, SPLIT_Y / 2);
   }
 
+  // ── Headshot circle overlay (drawn on top of photo area, before dark section) ──
+  if (headShotImg) {
+    const hcx = circlePos.x;
+    const hcy = circlePos.y;
+
+    // Sample brightness at circle centre to pick border colour
+    const sR = 30;
+    const sX = Math.max(0, Math.round(hcx - sR));
+    const sY = Math.max(0, Math.round(hcy - sR));
+    const sW = Math.min(sR * 2, W - sX);
+    const sH = Math.min(sR * 2, H - sY);
+    const hsData = ctx.getImageData(sX, sY, sW, sH).data;
+    let hsLum = 0;
+    for (let i = 0; i < hsData.length; i += 4) {
+      hsLum += 0.299 * hsData[i] + 0.587 * hsData[i + 1] + 0.114 * hsData[i + 2];
+    }
+    const hsAvgLum = hsLum / (hsData.length / 4);
+    const borderColor = hsAvgLum > 128 ? "#111111" : "#ffffff";
+    const borderWidth = 5;
+
+    // Scale headshot to cover the circle (same cover logic as main photo)
+    const hsAspect = headShotImg.naturalWidth / headShotImg.naturalHeight;
+    const diameter = CIRCLE_R * 2;
+    let hsDw: number, hsDh: number;
+    if (hsAspect > 1) {
+      hsDh = diameter; hsDw = diameter * hsAspect;
+    } else {
+      hsDw = diameter; hsDh = diameter / hsAspect;
+    }
+    const hsZoom = 1.1;
+    hsDw *= hsZoom; hsDh *= hsZoom;
+    const maxOX = (hsDw - diameter) / 2;
+    const maxOY = (hsDh - diameter) / 2;
+    const ox = Math.max(-maxOX, Math.min(maxOX, headShotOffset.x));
+    const oy = Math.max(-maxOY, Math.min(maxOY, headShotOffset.y));
+    const hsDx = hcx - hsDw / 2 + ox;
+    const hsDy = hcy - hsDh / 2 + oy;
+
+    // Clip to circle, draw headshot
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(hcx, hcy, CIRCLE_R, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(
+      headShotImg,
+      0, 0, headShotImg.naturalWidth, headShotImg.naturalHeight,
+      hsDx, hsDy, hsDw, hsDh
+    );
+    ctx.restore();
+
+    // Border ring
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(hcx, hcy, CIRCLE_R + borderWidth / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = borderWidth;
+    ctx.stroke();
+    ctx.restore();
+  }
+
   // ── Dark bottom section ───────────────────────────────────────────────────
   ctx.fillStyle = "#191919";
   ctx.fillRect(0, SPLIT_Y, W, H - SPLIT_Y);
@@ -188,8 +254,7 @@ async function drawGraphic(
   const qmNatH   = qmImg ? qmImg.naturalHeight : QM_SIZE;
   const quoteTop = SPLIT_Y + (qmImg ? qmNatH * 0.55 : 20) - 60;
 
-  // Disable OpenType contextual alternates and ligatures — these can cause
-  // certain glyphs to render at different heights than expected.
+  // Disable OpenType contextual alternates and ligatures
   ctx.fontKerning = "none";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ("fontFeatureSettings" in ctx) (ctx as any).fontFeatureSettings = '"calt" 0, "liga" 0, "clig" 0, "dlig" 0';
@@ -202,18 +267,15 @@ async function drawGraphic(
     ? quoteText.toUpperCase()
     : "QUOTE TEXT GOES HERE";
 
-  // Scale down from 72pt until the wrapped lines fit in the dark region, min 24pt
   // ── Layout zones within the dark region ──────────────────────────────────
-  const ZONE_QUOTE_END   = H - 120;  // 960  — bottom of quote (green) zone
-  const ZONE_SPEAKER_END = H - 60;   // 1020 — bottom of speaker (red) zone
-  // Outlet (blue) zone: H-60 → H (1080)
+  const ZONE_QUOTE_END   = H - 120;  // 960  — bottom of quote zone
+  const ZONE_SPEAKER_END = H - 60;   // 1020 — bottom of speaker zone
 
-  // Speaker baseline centered in red zone
-  const SPEAKER_Y = ZONE_SPEAKER_END - 10;   // bottom of red zone, 10px padding
-  const OUTLET_Y  = ZONE_SPEAKER_END + 28;   // top of blue zone + cap height
+  const SPEAKER_Y = ZONE_SPEAKER_END - 10;
+  const OUTLET_Y  = ZONE_SPEAKER_END + 28;
 
   const PT_TO_PX = 96 / 72;
-  const quoteZoneH = ZONE_QUOTE_END - SPLIT_Y; // 210px available for quote text
+  const quoteZoneH = ZONE_QUOTE_END - SPLIT_Y;
   let fontSizePt = 96;
   let lines: string[] = [];
   let lineH = fontSizePt * PT_TO_PX * 0.98;
@@ -227,10 +289,12 @@ async function drawGraphic(
 
   const fontSizePx = fontSizePt * PT_TO_PX;
   const quoteSpan  = (lines.length - 1) * lineH;
-  // Visual block spans from (startY - capH) to (startY + quoteSpan).
-  // Center that block in the green zone by solving for equal top/bottom margins.
   const capH   = fontSizePx * 0.72;
   const startY = Math.round(SPLIT_Y + (quoteZoneH - capH - quoteSpan) / 2 + capH);
+
+  // suppress unused warning
+  void quoteTop;
+
   if (fontDataUrl) {
     const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const quoteEls = lines.map((line, i) =>
@@ -283,22 +347,40 @@ async function drawGraphic(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function QuotePage() {
-  const canvasRef     = useRef<HTMLCanvasElement>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef      = useRef<HTMLCanvasElement>(null);
+  const photoInputRef  = useRef<HTMLInputElement>(null);
+  const headShotInputRef = useRef<HTMLInputElement>(null);
 
+  // Main photo state
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [photoOffset,   setPhotoOffset]   = useState({ x: 0, y: 0 });
   const [photoDragging, setPhotoDragging] = useState(false);
+
+  // Headshot overlay state
+  const [headShotUrl,     setHeadShotUrl]     = useState<string | null>(null);
+  const [headShotOffset,  setHeadShotOffset]  = useState({ x: 0, y: 0 });
+  const [circlePos,       setCirclePos]       = useState({ x: 200, y: 200 });
+  const [headShotMode,    setHeadShotMode]    = useState<'move' | 'pan'>('move');
+  const [headShotDragging, setHeadShotDragging] = useState(false); // drop-zone hover
+
+  // Quote / attribution
   const [quoteText,     setQuoteText]     = useState("");
   const [speakerName,   setSpeakerName]   = useState("");
   const [outlet,        setOutlet]        = useState("");
   const [photoCredit,   setPhotoCredit]   = useState("");
   const [isRendering,   setIsRendering]   = useState(false);
 
-  const isPanning  = useRef(false);
-  const panLastPos = useRef({ x: 0, y: 0 });
-  const [isPanningState, setIsPanningState] = useState(false);
+  // Drag refs (avoid stale-closure issues)
+  const isPanning          = useRef(false);
+  const panLastPos         = useRef({ x: 0, y: 0 });
+  const isHeadShotDragging = useRef(false);
+  const headShotLastPos    = useRef({ x: 0, y: 0 });
 
+  // Mirror drag refs as state just for cursor styling
+  const [isPanningState,         setIsPanningState]         = useState(false);
+  const [isHeadShotDraggingState, setIsHeadShotDraggingState] = useState(false);
+
+  // ── Canvas coordinate helper ────────────────────────────────────────────
   const getCanvasXY = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!;
     const rect   = canvas.getBoundingClientRect();
@@ -308,29 +390,81 @@ export default function QuotePage() {
     };
   };
 
-  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!photoPreviewUrl) return;
-    isPanning.current = true;
-    setIsPanningState(true);
-    panLastPos.current = getCanvasXY(e);
-    e.preventDefault();
+  // Returns true if pos is inside the headshot circle
+  const isInHeadShotCircle = (pos: { x: number; y: number }) => {
+    const dx = pos.x - circlePos.x;
+    const dy = pos.y - circlePos.y;
+    return Math.sqrt(dx * dx + dy * dy) <= CIRCLE_R;
   };
-  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isPanning.current) return;
-    const pos = getCanvasXY(e);
-    const dx  = pos.x - panLastPos.current.x;
-    const dy  = pos.y - panLastPos.current.y;
-    panLastPos.current = pos;
-    setPhotoOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-  };
-  const handleCanvasMouseUp = () => { isPanning.current = false; setIsPanningState(false); };
 
+  // ── Canvas mouse handlers ───────────────────────────────────────────────
+  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const pos = getCanvasXY(e);
+
+    if (headShotUrl && isInHeadShotCircle(pos)) {
+      // Click is on the headshot circle — pan headshot or move frame
+      isHeadShotDragging.current = true;
+      setIsHeadShotDraggingState(true);
+      headShotLastPos.current = pos;
+      e.preventDefault();
+    } else if (photoPreviewUrl) {
+      // Click is outside circle (or no headshot) — pan main photo
+      isPanning.current = true;
+      setIsPanningState(true);
+      panLastPos.current = pos;
+      e.preventDefault();
+    }
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const pos = getCanvasXY(e);
+
+    if (isHeadShotDragging.current) {
+      const dx = pos.x - headShotLastPos.current.x;
+      const dy = pos.y - headShotLastPos.current.y;
+      headShotLastPos.current = pos;
+
+      if (headShotMode === 'move') {
+        // Move the circle frame, constrained to the photo area
+        setCirclePos(prev => ({
+          x: Math.max(CIRCLE_R, Math.min(CANVAS_W - CIRCLE_R, prev.x + dx)),
+          y: Math.max(CIRCLE_R, Math.min(SPLIT_Y  - CIRCLE_R, prev.y + dy)),
+        }));
+      } else {
+        // Pan the headshot photo inside the circle
+        setHeadShotOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      }
+    } else if (isPanning.current) {
+      const dx = pos.x - panLastPos.current.x;
+      const dy = pos.y - panLastPos.current.y;
+      panLastPos.current = pos;
+      setPhotoOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+    }
+  };
+
+  const handleCanvasMouseUp = () => {
+    isPanning.current = false;
+    setIsPanningState(false);
+    isHeadShotDragging.current = false;
+    setIsHeadShotDraggingState(false);
+  };
+
+  // ── File handlers ───────────────────────────────────────────────────────
   const handlePhotoFile = (file: File) => {
     if (!file.type.startsWith("image/")) return;
     setPhotoPreviewUrl(URL.createObjectURL(file));
     setPhotoOffset({ x: 0, y: 0 });
   };
 
+  const handleHeadShotFile = (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    setHeadShotUrl(URL.createObjectURL(file));
+    setHeadShotOffset({ x: 0, y: 0 });
+    setCirclePos({ x: 200, y: 200 });
+    setHeadShotMode('move');
+  };
+
+  // ── Canvas render ────────────────────────────────────────────────────────
   const renderCanvas = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -338,12 +472,17 @@ export default function QuotePage() {
     if (!ctx) return;
     setIsRendering(true);
     try {
-      const photoImg = photoPreviewUrl ? await loadImage(photoPreviewUrl) : null;
-      await drawGraphic(ctx, { photoImg, photoOffset, quoteText, speakerName, outlet, photoCredit });
+      const photoImg    = photoPreviewUrl ? await loadImage(photoPreviewUrl) : null;
+      const headShotImg = headShotUrl     ? await loadImage(headShotUrl)     : null;
+      await drawGraphic(ctx, {
+        photoImg, photoOffset, quoteText, speakerName, outlet, photoCredit,
+        headShotImg, headShotOffset, circlePos,
+      });
     } finally {
       setIsRendering(false);
     }
-  }, [photoPreviewUrl, photoOffset, quoteText, speakerName, outlet, photoCredit]);
+  }, [photoPreviewUrl, photoOffset, quoteText, speakerName, outlet, photoCredit,
+      headShotUrl, headShotOffset, circlePos]);
 
   useEffect(() => { renderCanvas(); }, [renderCanvas]);
 
@@ -356,11 +495,16 @@ export default function QuotePage() {
     link.click();
   };
 
+  // Cursor class for the canvas
+  const isDraggingAnything = isPanningState || isHeadShotDraggingState;
+  const canvasCursor = isDraggingAnything
+    ? "cursor-grabbing"
+    : (photoPreviewUrl || headShotUrl) ? "cursor-grab" : "";
+
   return (
     <div className="min-h-screen bg-gray-950">
       <style>{`
         @font-face { font-family: 'KuunariMedCond'; src: url('/fonts/Kuunari-MediumCondensed.otf') format('opentype'); }
-        @font-face { font-family: 'KuunariMedCond'; src: url('/fonts/Akzidenz-Grotesk%20BQ%20Medium%20Condensed.ttf') format('opentype'); }
       `}</style>
 
       <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-10">
@@ -383,7 +527,7 @@ export default function QuotePage() {
           {/* Controls */}
           <div className="flex flex-col gap-6">
 
-            {/* Photo */}
+            {/* Main Photo */}
             <div>
               <h2 className="text-white font-semibold text-lg mb-3">Photo</h2>
               <div
@@ -396,6 +540,7 @@ export default function QuotePage() {
               >
                 {photoPreviewUrl ? (
                   <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={photoPreviewUrl} alt="preview" className="w-full h-full object-contain" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                       <p className="text-white text-sm font-medium">Click or drop to change</p>
@@ -426,6 +571,90 @@ export default function QuotePage() {
                 placeholder="e.g. Imagn"
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm"
               />
+            </div>
+
+            {/* Headshot Overlay */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-white font-semibold text-lg">Headshot Overlay</h2>
+                <span className="text-gray-500 text-xs">Optional</span>
+              </div>
+              <div
+                onClick={() => headShotInputRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); setHeadShotDragging(true); }}
+                onDragLeave={() => setHeadShotDragging(false)}
+                onDrop={e => { e.preventDefault(); setHeadShotDragging(false); const f = e.dataTransfer.files[0]; if (f) handleHeadShotFile(f); }}
+                className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all overflow-hidden relative
+                  ${headShotDragging ? "border-purple-400 bg-purple-950/30" : "border-gray-700 hover:border-gray-500 bg-gray-800"}`}
+              >
+                {headShotUrl ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={headShotUrl} alt="headshot preview" className="w-full h-full object-contain" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <p className="text-white text-sm font-medium">Click or drop to change</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-6 h-6 text-gray-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-gray-400 text-sm">
+                      {headShotDragging ? "Drop it!" : "Drop headshot or click to browse"}
+                    </span>
+                  </>
+                )}
+                <input ref={headShotInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleHeadShotFile(f); }} />
+              </div>
+
+              {headShotUrl && (
+                <div className="mt-3 flex flex-col gap-2">
+                  <p className="text-gray-500 text-xs">Drag on the preview to interact. Switch modes below.</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setHeadShotMode('move')}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        headShotMode === 'move'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+                      }`}
+                    >
+                      Move frame
+                    </button>
+                    <button
+                      onClick={() => setHeadShotMode('pan')}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        headShotMode === 'pan'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+                      }`}
+                    >
+                      Pan headshot
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setHeadShotOffset({ x: 0, y: 0 });
+                      setCirclePos({ x: 200, y: 200 });
+                    }}
+                    className="text-xs text-gray-500 hover:text-gray-300 transition-colors text-left"
+                  >
+                    Reset position
+                  </button>
+                  <button
+                    onClick={() => {
+                      setHeadShotUrl(null);
+                      setHeadShotOffset({ x: 0, y: 0 });
+                      setCirclePos({ x: 200, y: 200 });
+                    }}
+                    className="text-xs text-red-500/70 hover:text-red-400 transition-colors text-left"
+                  >
+                    Remove headshot
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Quote */}
@@ -491,7 +720,7 @@ export default function QuotePage() {
                 ref={canvasRef}
                 width={CANVAS_W}
                 height={CANVAS_H}
-                className={`w-full h-auto select-none ${photoPreviewUrl ? (isPanningState ? "cursor-grabbing" : "cursor-grab") : ""}`}
+                className={`w-full h-auto select-none ${canvasCursor}`}
                 onMouseDown={handleCanvasMouseDown}
                 onMouseMove={handleCanvasMouseMove}
                 onMouseUp={handleCanvasMouseUp}
@@ -502,7 +731,7 @@ export default function QuotePage() {
                   onClick={() => setPhotoOffset({ x: 0, y: 0 })}
                   className="absolute bottom-3 left-3 bg-black/60 hover:bg-black/80 text-white text-xs px-2.5 py-1.5 rounded-lg transition-colors"
                 >
-                  Reset position
+                  Reset photo position
                 </button>
               )}
             </div>
