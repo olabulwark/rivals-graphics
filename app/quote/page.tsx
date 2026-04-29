@@ -181,6 +181,9 @@ async function drawGraphic(
 
   // Scale down from 72pt until the wrapped lines fit in the dark region, min 24pt
   const PT_TO_PX = 96 / 72;
+  // Reserve space at the bottom for attribution (speaker + outlet lines)
+  const ATTR_RESERVE = 110;
+  const quoteAvailH = H - SPLIT_Y - ATTR_RESERVE; // height available for quote text
   let fontSizePt = 72;
   let lines: string[] = [];
   let lineH = fontSizePt * PT_TO_PX * 0.98;
@@ -188,21 +191,20 @@ async function drawGraphic(
     const px = fontSizePt * PT_TO_PX;
     lineH = px * 0.98;
     lines = fontDataUrl ? wrapText(fontDataUrl, px, displayQuote, textMaxW) : [];
-    if (lines.length * lineH <= H - SPLIT_Y - 80) break;
+    if (lines.length * lineH <= quoteAvailH) break;
     fontSizePt -= 1;
   }
 
   const fontSizePx = fontSizePt * PT_TO_PX;
   // Distance from first baseline to last baseline
   const quoteSpan = (lines.length - 1) * lineH;
-  // Vertically center the quote block within the dark region (SPLIT_Y → H)
-  const darkMid = (SPLIT_Y + H) / 2;
-  const startY = Math.round(darkMid - quoteSpan / 2);
+  // Center quote within the space reserved for it (above attribution)
+  const quoteMid = SPLIT_Y + quoteAvailH / 2;
+  const startY = Math.round(quoteMid - quoteSpan / 2);
 
-  // Attribution sits 39px below the last line's baseline,
-  // but never pushes the outlet line past 50px from the bottom of the canvas.
+  // Attribution always sits naturally below the quote — no cap needed
   const lastLineY = startY + quoteSpan;
-  const attrY = Math.min(lastLineY + 39, H - 160);
+  const attrY = lastLineY + 39;
   if (fontDataUrl) {
     const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const quoteEls = lines.map((line, i) =>
