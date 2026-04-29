@@ -296,18 +296,32 @@ async function drawGraphic(
   // ── School logos ──────────────────────────────────────────────────────────
   const active = logoImgs.filter(Boolean) as HTMLImageElement[];
   if (active.length > 0) {
-    const gap = 10;
+    const targetH   = 120;
+    const sidePad   = 60;
+    const available = W - sidePad * 2;
 
-    // Use each logo's natural dimensions
-    const dims = active.map(img => ({ lw: img.naturalWidth, lh: img.naturalHeight }));
-    const totalW = dims.reduce((sum, d) => sum + d.lw, 0) + gap * (active.length - 1);
+    // Scale each logo to target height preserving aspect ratio
+    let dims = active.map(img => ({
+      lw: targetH * (img.naturalWidth / img.naturalHeight),
+      lh: targetH,
+    }));
 
-    // Draw centered
-    let lx = (W - totalW) / 2;
+    // If total logo width exceeds available space, scale everything down
+    const totalLogoW = dims.reduce((sum, d) => sum + d.lw, 0);
+    if (totalLogoW > available) {
+      const scale = available / totalLogoW;
+      dims = dims.map(d => ({ lw: d.lw * scale, lh: d.lh * scale }));
+    }
+
+    // Distribute logos evenly (space-between) within the available width
+    const scaledTotal = dims.reduce((sum, d) => sum + d.lw, 0);
+    const gap = active.length > 1 ? (available - scaledTotal) / (active.length - 1) : 0;
+
+    let lx = active.length > 1 ? sidePad : (W - scaledTotal) / 2;
     for (let i = 0; i < active.length; i++) {
       const { lw, lh } = dims[i];
       const ly = LOGO_PANEL_Y;
-      ctx.drawImage(active[i], 0, 0, lw, lh, lx, ly, lw, lh);
+      ctx.drawImage(active[i], 0, 0, active[i].naturalWidth, active[i].naturalHeight, lx, ly, lw, lh);
       lx += lw + gap;
     }
   }
