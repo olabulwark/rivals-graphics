@@ -191,7 +191,7 @@ async function drawGraphic(
 
   const PT_TO_PX = 96 / 72;
   const quoteZoneH = ZONE_QUOTE_END - SPLIT_Y; // 210px available for quote text
-  let fontSizePt = 72;
+  let fontSizePt = 96;
   let lines: string[] = [];
   let lineH = fontSizePt * PT_TO_PX * 0.98;
   while (fontSizePt > 24) {
