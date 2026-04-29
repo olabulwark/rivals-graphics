@@ -186,9 +186,8 @@ async function drawGraphic(
   // Outlet (blue) zone: H-60 → H (1080)
 
   // Speaker baseline centered in red zone
-  const SPEAKER_Y = Math.round((ZONE_QUOTE_END + ZONE_SPEAKER_END) / 2) - 4;  // ≈ 986
-  // Outlet baseline centered in blue zone
-  const OUTLET_Y  = Math.round((ZONE_SPEAKER_END + H) / 2) + 10;              // ≈ 1060
+  const SPEAKER_Y = ZONE_SPEAKER_END - 10;   // bottom of red zone, 10px padding
+  const OUTLET_Y  = ZONE_SPEAKER_END + 28;   // top of blue zone + cap height
 
   const PT_TO_PX = 96 / 72;
   const quoteZoneH = ZONE_QUOTE_END - SPLIT_Y; // 210px available for quote text
