@@ -180,10 +180,18 @@ async function drawGraphic(
     : "QUOTE TEXT GOES HERE";
 
   // Scale down from 72pt until the wrapped lines fit in the dark region, min 24pt
+  // ── Layout zones within the dark region ──────────────────────────────────
+  const ZONE_QUOTE_END   = H - 120;  // 960  — bottom of quote (green) zone
+  const ZONE_SPEAKER_END = H - 60;   // 1020 — bottom of speaker (red) zone
+  // Outlet (blue) zone: H-60 → H (1080)
+
+  // Speaker baseline centered in red zone
+  const SPEAKER_Y = Math.round((ZONE_QUOTE_END + ZONE_SPEAKER_END) / 2) + 11; // ≈ 1001
+  // Outlet baseline centered in blue zone
+  const OUTLET_Y  = Math.round((ZONE_SPEAKER_END + H) / 2) + 10;              // ≈ 1060
+
   const PT_TO_PX = 96 / 72;
-  // Reserve space at the bottom for attribution (speaker + outlet lines)
-  const ATTR_RESERVE = 110;
-  const quoteAvailH = H - SPLIT_Y - ATTR_RESERVE; // height available for quote text
+  const quoteZoneH = ZONE_QUOTE_END - SPLIT_Y; // 210px available for quote text
   let fontSizePt = 72;
   let lines: string[] = [];
   let lineH = fontSizePt * PT_TO_PX * 0.98;
@@ -191,30 +199,25 @@ async function drawGraphic(
     const px = fontSizePt * PT_TO_PX;
     lineH = px * 0.98;
     lines = fontDataUrl ? wrapText(fontDataUrl, px, displayQuote, textMaxW) : [];
-    if (lines.length * lineH <= quoteAvailH) break;
+    if (lines.length * lineH <= quoteZoneH) break;
     fontSizePt -= 1;
   }
 
   const fontSizePx = fontSizePt * PT_TO_PX;
-  // Distance from first baseline to last baseline
-  const quoteSpan = (lines.length - 1) * lineH;
-  // Center quote within the space reserved for it (above attribution)
-  const quoteMid = SPLIT_Y + quoteAvailH / 2;
-  const startY = Math.round(quoteMid - quoteSpan / 2);
-
-  // Attribution always sits naturally below the quote — no cap needed
-  const lastLineY = startY + quoteSpan;
-  const attrY = lastLineY + 39;
+  const quoteSpan  = (lines.length - 1) * lineH;
+  // Center quote block vertically within the green zone
+  const quoteMid = (SPLIT_Y + ZONE_QUOTE_END) / 2;
+  const startY   = Math.round(quoteMid - quoteSpan / 2);
   if (fontDataUrl) {
     const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const quoteEls = lines.map((line, i) =>
       `<text class="q" x="${W / 2}" y="${Math.round(startY + i * lineH)}" text-anchor="middle">${esc(line)}</text>`
     ).join('\n');
     const speakerEl = speakerName
-      ? `<text class="spk" x="${W / 2}" y="${Math.round(attrY)}" text-anchor="middle">${esc(speakerName)}</text>`
+      ? `<text class="spk" x="${W / 2}" y="${SPEAKER_Y}" text-anchor="middle">${esc(speakerName)}</text>`
       : '';
     const outletEl = outlet
-      ? `<text class="out" x="${W / 2}" y="${Math.round(attrY + 40)}" text-anchor="middle">${esc(`to ${outlet}`)}</text>`
+      ? `<text class="out" x="${W / 2}" y="${OUTLET_Y}" text-anchor="middle">${esc(`to ${outlet}`)}</text>`
       : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
       <defs><style>
@@ -243,12 +246,12 @@ async function drawGraphic(
     if (speakerName) {
       ctx.fillStyle = "#ffffff";
       ctx.font = `32px "KuunariMedCond", sans-serif`;
-      ctx.fillText(speakerName, W / 2, attrY);
+      ctx.fillText(speakerName, W / 2, SPEAKER_Y);
     }
     if (outlet) {
       ctx.fillStyle = "rgba(255,255,255,0.5)";
       ctx.font = `28px "KuunariMedCond", sans-serif`;
-      ctx.fillText(`to ${outlet}`, W / 2, attrY + 40);
+      ctx.fillText(`to ${outlet}`, W / 2, OUTLET_Y);
     }
   }
 }
