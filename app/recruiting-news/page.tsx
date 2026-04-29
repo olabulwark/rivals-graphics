@@ -268,17 +268,33 @@ async function drawGraphic(
   // ── School logos ──────────────────────────────────────────────────────────
   const active = logoImgs.filter(Boolean) as HTMLImageElement[];
   if (active.length > 0) {
-    const slotW    = W / active.length;
-    const maxLogoH = LOGO_PANEL_H - 24;
-    for (let i = 0; i < active.length; i++) {
-      const img    = active[i];
+    const targetH  = LOGO_PANEL_H - 24;  // 116px target height
+    const gap      = 32;                  // gap between logos
+    const maxGroupW = W - 120;            // max total group width (60px side margin each)
+
+    // Compute each logo's width at target height
+    let dims = active.map(img => {
       const aspect = img.naturalWidth / img.naturalHeight;
-      let lh = maxLogoH;
-      let lw = lh * aspect;
-      if (lw > slotW - 16) { lw = slotW - 16; lh = lw / aspect; }
-      const lx = slotW * i + (slotW - lw) / 2;
+      return { lw: targetH * aspect, lh: targetH };
+    });
+
+    // Total group width
+    let totalW = dims.reduce((sum, d) => sum + d.lw, 0) + gap * (active.length - 1);
+
+    // Scale down if group is too wide
+    if (totalW > maxGroupW) {
+      const scale = maxGroupW / totalW;
+      dims = dims.map(d => ({ lw: d.lw * scale, lh: d.lh * scale }));
+      totalW = maxGroupW;
+    }
+
+    // Draw centered
+    let lx = (W - totalW) / 2;
+    for (let i = 0; i < active.length; i++) {
+      const { lw, lh } = dims[i];
       const ly = LOGO_PANEL_Y + (LOGO_PANEL_H - lh) / 2;
-      ctx.drawImage(img, lx, ly, lw, lh);
+      ctx.drawImage(active[i], 0, 0, active[i].naturalWidth, active[i].naturalHeight, lx, ly, lw, lh);
+      lx += lw + gap;
     }
   }
 }
