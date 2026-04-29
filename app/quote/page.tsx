@@ -300,7 +300,7 @@ async function drawGraphic(
       ? `<text class="spk" x="${W / 2}" y="${SPEAKER_Y}" text-anchor="middle">${esc(speakerName)}</text>`
       : '';
     const outletEl = outlet
-      ? `<text class="out" x="${W / 2}" y="${OUTLET_Y}" text-anchor="middle">${esc(`to ${outlet}`)}</text>`
+      ? `<text class="out" x="${W / 2}" y="${OUTLET_Y}" text-anchor="middle">${esc(outlet)}</text>`
       : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
       <defs><style>
@@ -334,7 +334,7 @@ async function drawGraphic(
     if (outlet) {
       ctx.fillStyle = "rgba(255,255,255,0.5)";
       ctx.font = `28px "KuunariMedCond", sans-serif`;
-      ctx.fillText(`to ${outlet}`, W / 2, OUTLET_Y);
+      ctx.fillText(outlet, W / 2, OUTLET_Y);
     }
   }
 }
