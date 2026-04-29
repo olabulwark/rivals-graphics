@@ -74,18 +74,20 @@ async function drawGraphic(
   opts: {
     photoImg: HTMLImageElement | null;
     photoOffset: { x: number; y: number };
+    photoZoom: number;
     quoteText: string;
     speakerName: string;
     outlet: string;
     photoCredit: string;
     headShotImg: HTMLImageElement | null;
     headShotOffset: { x: number; y: number };
+    headShotZoom: number;
     circlePos: { x: number; y: number };
   }
 ) {
   const {
-    photoImg, photoOffset, quoteText, speakerName, outlet, photoCredit,
-    headShotImg, headShotOffset, circlePos,
+    photoImg, photoOffset, photoZoom, quoteText, speakerName, outlet, photoCredit,
+    headShotImg, headShotOffset, headShotZoom, circlePos,
   } = opts;
   const W = CANVAS_W, H = CANVAS_H;
 
@@ -102,10 +104,10 @@ async function drawGraphic(
     } else {
       dw = W; dh = W / imgAspect;
     }
-    const zoom = 1.1;
-    dw *= zoom; dh *= zoom;
-    const maxOX = (dw - W) / 2;
-    const maxOY = (dh - SPLIT_Y) / 2;
+    // Apply user zoom (1.0 = fill frame exactly; higher = zoomed in)
+    dw *= photoZoom; dh *= photoZoom;
+    const maxOX = Math.max(0, (dw - W) / 2);
+    const maxOY = Math.max(0, (dh - SPLIT_Y) / 2);
     const cx = Math.max(-maxOX, Math.min(maxOX, photoOffset.x));
     const cy = Math.max(-maxOY, Math.min(maxOY, photoOffset.y));
     const dx = (W - dw) / 2 + cx;
@@ -196,7 +198,7 @@ async function drawGraphic(
     const borderColor = hsAvgLum > 128 ? "#111111" : "#ffffff";
     const borderWidth = 5;
 
-    // Scale headshot to cover the circle (same cover logic as main photo)
+    // Scale headshot to cover the circle, then apply user zoom
     const hsAspect = headShotImg.naturalWidth / headShotImg.naturalHeight;
     const diameter = CIRCLE_R * 2;
     let hsDw: number, hsDh: number;
@@ -205,10 +207,10 @@ async function drawGraphic(
     } else {
       hsDw = diameter; hsDh = diameter / hsAspect;
     }
-    const hsZoom = 1.1;
-    hsDw *= hsZoom; hsDh *= hsZoom;
-    const maxOX = (hsDw - diameter) / 2;
-    const maxOY = (hsDh - diameter) / 2;
+    // Apply user zoom on top of the cover fill
+    hsDw *= headShotZoom; hsDh *= headShotZoom;
+    const maxOX = Math.max(0, (hsDw - diameter) / 2);
+    const maxOY = Math.max(0, (hsDh - diameter) / 2);
     const ox = Math.max(-maxOX, Math.min(maxOX, headShotOffset.x));
     const oy = Math.max(-maxOY, Math.min(maxOY, headShotOffset.y));
     const hsDx = hcx - hsDw / 2 + ox;
@@ -244,17 +246,14 @@ async function drawGraphic(
   const qmImg = await loadImage("/quote.png");
   if (qmImg) {
     const qmX = (W - qmImg.naturalWidth) / 2;
-    const qmY = 650;   // fixed 650px from top
+    const qmY = 650;
     ctx.drawImage(qmImg, qmX, qmY);
   }
 
   // ── Quote text ────────────────────────────────────────────────────────────
   const textPad  = 72;
   const textMaxW = W - textPad * 2;
-  const qmNatH   = qmImg ? qmImg.naturalHeight : QM_SIZE;
-  const quoteTop = SPLIT_Y + (qmImg ? qmNatH * 0.55 : 20) - 60;
 
-  // Disable OpenType contextual alternates and ligatures
   ctx.fontKerning = "none";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ("fontFeatureSettings" in ctx) (ctx as any).fontFeatureSettings = '"calt" 0, "liga" 0, "clig" 0, "dlig" 0';
@@ -263,14 +262,11 @@ async function drawGraphic(
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
 
-  const displayQuote = quoteText
-    ? quoteText.toUpperCase()
-    : "QUOTE TEXT GOES HERE";
+  const displayQuote = quoteText ? quoteText.toUpperCase() : "QUOTE TEXT GOES HERE";
 
   // ── Layout zones within the dark region ──────────────────────────────────
-  const ZONE_QUOTE_END   = H - 120;  // 960  — bottom of quote zone
-  const ZONE_SPEAKER_END = H - 60;   // 1020 — bottom of speaker zone
-
+  const ZONE_QUOTE_END   = H - 120;  // 960
+  const ZONE_SPEAKER_END = H - 60;   // 1020
   const SPEAKER_Y = ZONE_SPEAKER_END - 10;
   const OUTLET_Y  = ZONE_SPEAKER_END + 28;
 
@@ -293,7 +289,7 @@ async function drawGraphic(
   const startY = Math.round(SPLIT_Y + (quoteZoneH - capH - quoteSpan) / 2 + capH);
 
   // suppress unused warning
-  void quoteTop;
+  void QM_SIZE;
 
   if (fontDataUrl) {
     const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -326,7 +322,6 @@ async function drawGraphic(
     if (svgImg) ctx.drawImage(svgImg, 0, 0, W, H);
 
   } else {
-    // Fallback: direct canvas text
     ctx.font = `normal normal ${fontSizePx}px "KuunariMedCond", sans-serif`;
     for (let i = 0; i < lines.length; i++) {
       ctx.fillText(lines[i], W / 2, startY + i * lineH);
@@ -347,41 +342,43 @@ async function drawGraphic(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function QuotePage() {
-  const canvasRef      = useRef<HTMLCanvasElement>(null);
-  const photoInputRef  = useRef<HTMLInputElement>(null);
+  const canvasRef        = useRef<HTMLCanvasElement>(null);
+  const photoInputRef    = useRef<HTMLInputElement>(null);
   const headShotInputRef = useRef<HTMLInputElement>(null);
 
   // Main photo state
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
-  const [photoOffset,   setPhotoOffset]   = useState({ x: 0, y: 0 });
-  const [photoDragging, setPhotoDragging] = useState(false);
+  const [photoOffset,     setPhotoOffset]     = useState({ x: 0, y: 0 });
+  const [photoZoom,       setPhotoZoom]       = useState(1.0);
+  const [photoDragging,   setPhotoDragging]   = useState(false);
 
   // Headshot overlay state
-  const [headShotUrl,     setHeadShotUrl]     = useState<string | null>(null);
-  const [headShotOffset,  setHeadShotOffset]  = useState({ x: 0, y: 0 });
-  const [circlePos,       setCirclePos]       = useState({ x: 200, y: 200 });
-  const [headShotMode,    setHeadShotMode]    = useState<'move' | 'pan'>('move');
+  const [headShotUrl,      setHeadShotUrl]      = useState<string | null>(null);
+  const [headShotOffset,   setHeadShotOffset]   = useState({ x: 0, y: 0 });
+  const [headShotZoom,     setHeadShotZoom]     = useState(1.0);
+  const [circlePos,        setCirclePos]        = useState({ x: 200, y: 200 });
+  const [headShotMode,     setHeadShotMode]     = useState<'move' | 'pan'>('move');
   const [headShotDragging, setHeadShotDragging] = useState(false); // drop-zone hover
 
   // Quote / attribution
-  const [quoteText,     setQuoteText]     = useState("");
-  const [speakerName,   setSpeakerName]   = useState("");
-  const [outlet,        setOutlet]        = useState("");
-  const [photoCredit,   setPhotoCredit]   = useState("");
-  const [isRendering,   setIsRendering]   = useState(false);
+  const [quoteText,   setQuoteText]   = useState("");
+  const [speakerName, setSpeakerName] = useState("");
+  const [outlet,      setOutlet]      = useState("");
+  const [photoCredit, setPhotoCredit] = useState("");
+  const [isRendering, setIsRendering] = useState(false);
 
-  // Drag refs (avoid stale-closure issues)
+  // Drag refs (avoids stale-closure issues in event handlers)
   const isPanning          = useRef(false);
   const panLastPos         = useRef({ x: 0, y: 0 });
   const isHeadShotDragging = useRef(false);
   const headShotLastPos    = useRef({ x: 0, y: 0 });
 
   // Mirror drag refs as state just for cursor styling
-  const [isPanningState,         setIsPanningState]         = useState(false);
+  const [isPanningState,          setIsPanningState]          = useState(false);
   const [isHeadShotDraggingState, setIsHeadShotDraggingState] = useState(false);
 
-  // ── Canvas coordinate helper ────────────────────────────────────────────
-  const getCanvasXY = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // ── Canvas coordinate helper ─────────────────────────────────────────────
+  const getCanvasXY = (e: { clientX: number; clientY: number }) => {
     const canvas = canvasRef.current!;
     const rect   = canvas.getBoundingClientRect();
     return {
@@ -392,23 +389,21 @@ export default function QuotePage() {
 
   // Returns true if pos is inside the headshot circle
   const isInHeadShotCircle = (pos: { x: number; y: number }) => {
+    if (!headShotUrl) return false;
     const dx = pos.x - circlePos.x;
     const dy = pos.y - circlePos.y;
     return Math.sqrt(dx * dx + dy * dy) <= CIRCLE_R;
   };
 
-  // ── Canvas mouse handlers ───────────────────────────────────────────────
+  // ── Canvas mouse handlers ────────────────────────────────────────────────
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const pos = getCanvasXY(e);
-
     if (headShotUrl && isInHeadShotCircle(pos)) {
-      // Click is on the headshot circle — pan headshot or move frame
       isHeadShotDragging.current = true;
       setIsHeadShotDraggingState(true);
       headShotLastPos.current = pos;
       e.preventDefault();
     } else if (photoPreviewUrl) {
-      // Click is outside circle (or no headshot) — pan main photo
       isPanning.current = true;
       setIsPanningState(true);
       panLastPos.current = pos;
@@ -418,20 +413,16 @@ export default function QuotePage() {
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const pos = getCanvasXY(e);
-
     if (isHeadShotDragging.current) {
       const dx = pos.x - headShotLastPos.current.x;
       const dy = pos.y - headShotLastPos.current.y;
       headShotLastPos.current = pos;
-
       if (headShotMode === 'move') {
-        // Move the circle frame, constrained to the photo area
         setCirclePos(prev => ({
           x: Math.max(CIRCLE_R, Math.min(CANVAS_W - CIRCLE_R, prev.x + dx)),
           y: Math.max(CIRCLE_R, Math.min(SPLIT_Y  - CIRCLE_R, prev.y + dy)),
         }));
       } else {
-        // Pan the headshot photo inside the circle
         setHeadShotOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
       }
     } else if (isPanning.current) {
@@ -449,22 +440,49 @@ export default function QuotePage() {
     setIsHeadShotDraggingState(false);
   };
 
-  // ── File handlers ───────────────────────────────────────────────────────
+  // ── Scroll-wheel zoom ────────────────────────────────────────────────────
+  const handleCanvasWheel = useCallback((e: WheelEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const pos = getCanvasXY(e);
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+
+    if (headShotUrl && isInHeadShotCircle(pos)) {
+      e.preventDefault();
+      setHeadShotZoom(prev => Math.max(1.0, Math.min(4.0, Math.round((prev + delta) * 10) / 10)));
+    } else if (photoPreviewUrl) {
+      e.preventDefault();
+      setPhotoZoom(prev => Math.max(1.0, Math.min(4.0, Math.round((prev + delta) * 10) / 10)));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [headShotUrl, photoPreviewUrl, circlePos]);
+
+  // Attach wheel listener as non-passive so we can preventDefault
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.addEventListener("wheel", handleCanvasWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", handleCanvasWheel);
+  }, [handleCanvasWheel]);
+
+  // ── File handlers ────────────────────────────────────────────────────────
   const handlePhotoFile = (file: File) => {
     if (!file.type.startsWith("image/")) return;
     setPhotoPreviewUrl(URL.createObjectURL(file));
     setPhotoOffset({ x: 0, y: 0 });
+    setPhotoZoom(1.0);
   };
 
   const handleHeadShotFile = (file: File) => {
     if (!file.type.startsWith("image/")) return;
     setHeadShotUrl(URL.createObjectURL(file));
     setHeadShotOffset({ x: 0, y: 0 });
+    setHeadShotZoom(1.0);
     setCirclePos({ x: 200, y: 200 });
     setHeadShotMode('move');
   };
 
-  // ── Canvas render ────────────────────────────────────────────────────────
+  // ── Canvas render ─────────────────────────────────────────────────────────
   const renderCanvas = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -475,14 +493,16 @@ export default function QuotePage() {
       const photoImg    = photoPreviewUrl ? await loadImage(photoPreviewUrl) : null;
       const headShotImg = headShotUrl     ? await loadImage(headShotUrl)     : null;
       await drawGraphic(ctx, {
-        photoImg, photoOffset, quoteText, speakerName, outlet, photoCredit,
-        headShotImg, headShotOffset, circlePos,
+        photoImg, photoOffset, photoZoom,
+        quoteText, speakerName, outlet, photoCredit,
+        headShotImg, headShotOffset, headShotZoom, circlePos,
       });
     } finally {
       setIsRendering(false);
     }
-  }, [photoPreviewUrl, photoOffset, quoteText, speakerName, outlet, photoCredit,
-      headShotUrl, headShotOffset, circlePos]);
+  }, [photoPreviewUrl, photoOffset, photoZoom,
+      quoteText, speakerName, outlet, photoCredit,
+      headShotUrl, headShotOffset, headShotZoom, circlePos]);
 
   useEffect(() => { renderCanvas(); }, [renderCanvas]);
 
@@ -495,7 +515,6 @@ export default function QuotePage() {
     link.click();
   };
 
-  // Cursor class for the canvas
   const isDraggingAnything = isPanningState || isHeadShotDraggingState;
   const canvasCursor = isDraggingAnything
     ? "cursor-grabbing"
@@ -559,6 +578,22 @@ export default function QuotePage() {
                 <input ref={photoInputRef} type="file" accept="image/*" className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoFile(f); }} />
               </div>
+
+              {/* Photo zoom slider */}
+              {photoPreviewUrl && (
+                <div className="mt-3 flex items-center gap-3">
+                  <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                  </svg>
+                  <input
+                    type="range" min="1.0" max="4.0" step="0.05"
+                    value={photoZoom}
+                    onChange={e => setPhotoZoom(parseFloat(e.target.value))}
+                    className="flex-1 accent-purple-500"
+                  />
+                  <span className="text-gray-400 text-xs w-8 text-right">{photoZoom.toFixed(1)}×</span>
+                </div>
+              )}
             </div>
 
             {/* Photo credit */}
@@ -611,7 +646,21 @@ export default function QuotePage() {
 
               {headShotUrl && (
                 <div className="mt-3 flex flex-col gap-2">
-                  <p className="text-gray-500 text-xs">Drag on the preview to interact. Switch modes below.</p>
+                  {/* Headshot zoom slider */}
+                  <div className="flex items-center gap-3">
+                    <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                    </svg>
+                    <input
+                      type="range" min="1.0" max="4.0" step="0.05"
+                      value={headShotZoom}
+                      onChange={e => setHeadShotZoom(parseFloat(e.target.value))}
+                      className="flex-1 accent-purple-500"
+                    />
+                    <span className="text-gray-400 text-xs w-8 text-right">{headShotZoom.toFixed(1)}×</span>
+                  </div>
+
+                  <p className="text-gray-500 text-xs">Drag on the preview to interact. Scroll to zoom.</p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setHeadShotMode('move')}
@@ -637,6 +686,7 @@ export default function QuotePage() {
                   <button
                     onClick={() => {
                       setHeadShotOffset({ x: 0, y: 0 });
+                      setHeadShotZoom(1.0);
                       setCirclePos({ x: 200, y: 200 });
                     }}
                     className="text-xs text-gray-500 hover:text-gray-300 transition-colors text-left"
@@ -647,6 +697,7 @@ export default function QuotePage() {
                     onClick={() => {
                       setHeadShotUrl(null);
                       setHeadShotOffset({ x: 0, y: 0 });
+                      setHeadShotZoom(1.0);
                       setCirclePos({ x: 200, y: 200 });
                     }}
                     className="text-xs text-red-500/70 hover:text-red-400 transition-colors text-left"
@@ -726,12 +777,12 @@ export default function QuotePage() {
                 onMouseUp={handleCanvasMouseUp}
                 onMouseLeave={handleCanvasMouseUp}
               />
-              {photoPreviewUrl && (photoOffset.x !== 0 || photoOffset.y !== 0) && (
+              {photoPreviewUrl && (photoOffset.x !== 0 || photoOffset.y !== 0 || photoZoom !== 1.0) && (
                 <button
-                  onClick={() => setPhotoOffset({ x: 0, y: 0 })}
+                  onClick={() => { setPhotoOffset({ x: 0, y: 0 }); setPhotoZoom(1.0); }}
                   className="absolute bottom-3 left-3 bg-black/60 hover:bg-black/80 text-white text-xs px-2.5 py-1.5 rounded-lg transition-colors"
                 >
-                  Reset photo position
+                  Reset photo
                 </button>
               )}
             </div>
