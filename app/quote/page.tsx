@@ -140,8 +140,8 @@ async function drawGraphic(
 
     // ── Photo credit — upper right, auto light/dark ───────────────────────
     if (photoCredit) {
-      const creditPad = 20;
-      const creditFontSize = 24;
+      const creditPad = 12;
+      const creditFontSize = 18;
       const creditText = `Photo: ${photoCredit}`;
       // Sample brightness where the credit will sit (top-left)
       const creditSampleY = creditPad;
