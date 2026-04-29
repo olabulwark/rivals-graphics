@@ -205,9 +205,10 @@ async function drawGraphic(
 
   const fontSizePx = fontSizePt * PT_TO_PX;
   const quoteSpan  = (lines.length - 1) * lineH;
-  // Center quote block vertically within the green zone
-  const quoteMid = (SPLIT_Y + ZONE_QUOTE_END) / 2;
-  const startY   = Math.round(quoteMid - quoteSpan / 2);
+  // Visual block spans from (startY - capH) to (startY + quoteSpan).
+  // Center that block in the green zone by solving for equal top/bottom margins.
+  const capH   = fontSizePx * 0.72;
+  const startY = Math.round(SPLIT_Y + (quoteZoneH - capH - quoteSpan) / 2 + capH);
   if (fontDataUrl) {
     const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const quoteEls = lines.map((line, i) =>
