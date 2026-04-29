@@ -295,7 +295,7 @@ async function drawGraphic(
   // ── School logos ──────────────────────────────────────────────────────────
   const active = logoImgs.filter(Boolean) as HTMLImageElement[];
   if (active.length > 0) {
-    const targetH  = LOGO_PANEL_H - 24;  // 116px target height
+    const targetH  = 136;
     const gap      = 32;                  // gap between logos
     const maxGroupW = W - 120;            // max total group width (60px side margin each)
 
