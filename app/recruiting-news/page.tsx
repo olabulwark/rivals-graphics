@@ -230,9 +230,16 @@ async function drawGraphic(
     ctx.fillText("Upload a photo", W / 2, PHOTO_SPLIT / 2);
   }
 
-  // ── Dark panel ────────────────────────────────────────────────────────────
+  // ── Panels ────────────────────────────────────────────────────────────────
+  // Background behind recruiting-news.png banner
   ctx.fillStyle = "#1d252c";
-  ctx.fillRect(0, PHOTO_SPLIT, W, H - PHOTO_SPLIT);
+  ctx.fillRect(0, PHOTO_SPLIT, W, TEXT_PANEL_Y - PHOTO_SPLIT);
+  // Main text panel
+  ctx.fillStyle = "#cc0000";
+  ctx.fillRect(0, TEXT_PANEL_Y, W, LOGO_PANEL_Y - TEXT_PANEL_Y);
+  // Logo panel
+  ctx.fillStyle = "#0047cc";
+  ctx.fillRect(0, LOGO_PANEL_Y, W, H - LOGO_PANEL_Y);
 
   // ── Recruiting News banner ────────────────────────────────────────────────
   const rnImg = await loadImage("/recruiting-news.png");
