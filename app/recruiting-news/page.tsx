@@ -175,7 +175,7 @@ async function drawGraphic(
     ctx.rect(0, 0, W, PHOTO_SPLIT);
     ctx.clip();
     // Camera Raw simulation: contrast + saturation + brightness boost
-    ctx.filter = filterEnabled ? "contrast(1.22) saturate(1.32) brightness(0.87)" : "none";
+    ctx.filter = filterEnabled ? "contrast(1.32) saturate(1.28) brightness(0.88)" : "none";
     ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight, dx, dy, dw, dh);
     ctx.filter = "none";
     ctx.restore();
