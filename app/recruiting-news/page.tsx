@@ -302,25 +302,26 @@ async function drawGraphic(
 
     // Use each logo's natural dimensions
     let dims = active.map(img => ({ lw: img.naturalWidth, lh: img.naturalHeight }));
-    const gapsW     = gap * (active.length - 1);
-    const logoOnlyW = dims.reduce((sum, d) => sum + d.lw, 0);
+    const rawTotal = dims.reduce((sum, d) => sum + d.lw, 0) + gap * (active.length - 1);
 
-    // Scale only the logos (not the gaps) so the group fits within maxGroupW
-    if (logoOnlyW + gapsW > maxGroupW) {
-      const scale = (maxGroupW - gapsW) / logoOnlyW;
+    // If too wide, scale everything (logos + gap) by the same factor
+    let scaledGap = gap;
+    if (rawTotal > maxGroupW) {
+      const scale = maxGroupW / rawTotal;
       dims = dims.map(d => ({ lw: d.lw * scale, lh: d.lh * scale }));
+      scaledGap = gap * scale;
     }
 
-    // Recalculate actual total width after scaling for accurate centering
-    const totalW = dims.reduce((sum, d) => sum + d.lw, 0) + gapsW;
+    const totalW = dims.reduce((sum, d) => sum + d.lw, 0) + scaledGap * (active.length - 1);
 
     // Draw centered group
     let lx = (W - totalW) / 2;
     for (let i = 0; i < active.length; i++) {
       const { lw, lh } = dims[i];
       const ly = LOGO_PANEL_Y + (LOGO_PANEL_H - lh) / 2;
-      ctx.drawImage(active[i], 0, 0, lw, lh, lx, ly, lw, lh);
-      lx += lw + gap;
+      // Use natural dimensions as source so the full image is drawn, scaled to lw×lh
+      ctx.drawImage(active[i], 0, 0, active[i].naturalWidth, active[i].naturalHeight, lx, ly, lw, lh);
+      lx += lw + scaledGap;
     }
   }
 }
