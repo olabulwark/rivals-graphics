@@ -296,11 +296,20 @@ async function drawGraphic(
   // ── School logos ──────────────────────────────────────────────────────────
   const active = logoImgs.filter(Boolean) as HTMLImageElement[];
   if (active.length > 0) {
-    const gap = 12;
+    const gap       = 12;
+    const sidePad   = 40;
+    const maxGroupW = W - sidePad * 2;
 
     // Use each logo's natural dimensions
-    const dims = active.map(img => ({ lw: img.naturalWidth, lh: img.naturalHeight }));
-    const totalW = dims.reduce((sum, d) => sum + d.lw, 0) + gap * (active.length - 1);
+    let dims = active.map(img => ({ lw: img.naturalWidth, lh: img.naturalHeight }));
+    let totalW = dims.reduce((sum, d) => sum + d.lw, 0) + gap * (active.length - 1);
+
+    // Scale down proportionally if the group overflows the canvas
+    if (totalW > maxGroupW) {
+      const scale = maxGroupW / totalW;
+      dims = dims.map(d => ({ lw: d.lw * scale, lh: d.lh * scale }));
+      totalW = maxGroupW;
+    }
 
     // Draw centered group
     let lx = (W - totalW) / 2;
