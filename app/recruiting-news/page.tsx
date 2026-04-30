@@ -302,14 +302,17 @@ async function drawGraphic(
 
     // Use each logo's natural dimensions
     let dims = active.map(img => ({ lw: img.naturalWidth, lh: img.naturalHeight }));
-    let totalW = dims.reduce((sum, d) => sum + d.lw, 0) + gap * (active.length - 1);
+    const gapsW     = gap * (active.length - 1);
+    const logoOnlyW = dims.reduce((sum, d) => sum + d.lw, 0);
 
-    // Scale down proportionally if the group overflows the canvas
-    if (totalW > maxGroupW) {
-      const scale = maxGroupW / totalW;
+    // Scale only the logos (not the gaps) so the group fits within maxGroupW
+    if (logoOnlyW + gapsW > maxGroupW) {
+      const scale = (maxGroupW - gapsW) / logoOnlyW;
       dims = dims.map(d => ({ lw: d.lw * scale, lh: d.lh * scale }));
-      totalW = maxGroupW;
     }
+
+    // Recalculate actual total width after scaling for accurate centering
+    const totalW = dims.reduce((sum, d) => sum + d.lw, 0) + gapsW;
 
     // Draw centered group
     let lx = (W - totalW) / 2;
