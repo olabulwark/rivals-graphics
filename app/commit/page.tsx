@@ -250,16 +250,14 @@ async function drawGraphic(
     const barH = W * (barImg.naturalHeight / barImg.naturalWidth);
     const barY = bandCenterY - barH / 2;
 
-    // Draw the inverse bar first
-    ctx.drawImage(barImg, 0, barY, W, barH);
-
-    // Linear Dodge (Add): school primary color tints the bar
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
+    // Fill bar area with primary color
     ctx.fillStyle = primaryHex;
-    const barRect = new Path2D();
-    barRect.rect(0, barY, W, barH);
-    ctx.fill(barRect);
+    ctx.fillRect(0, barY, W, barH);
+
+    // Multiply: white areas of bar PNG disappear, dark topo lines darken the primary color
+    ctx.save();
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(barImg, 0, barY, W, barH);
     ctx.restore();
   }
 
