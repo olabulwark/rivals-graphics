@@ -72,6 +72,65 @@ function getOpaqueBounds(img: HTMLImageElement): { sx: number; sy: number; sw: n
   return { sx: minX, sy: minY, sw: maxX - minX + 1, sh: maxY - minY + 1 };
 }
 
+// Scan a PNG's pixel data to find the four corner points of a trapezoid shape
+function getTrapezoidCorners(img: HTMLImageElement): {
+  tl: [number, number]; tr: [number, number];
+  bl: [number, number]; br: [number, number];
+} {
+  const oc = document.createElement("canvas");
+  oc.width  = img.naturalWidth;
+  oc.height = img.naturalHeight;
+  const octx = oc.getContext("2d")!;
+  octx.drawImage(img, 0, 0);
+  const { data } = octx.getImageData(0, 0, oc.width, oc.height);
+  const IW = oc.width, IH = oc.height;
+  const a = (x: number, y: number) => data[(y * IW + x) * 4 + 3];
+
+  let topRow = 0;
+  topSearch: for (let y = 0; y < IH; y++) {
+    for (let x = 0; x < IW; x++) { if (a(x, y) > 8) { topRow = y; break topSearch; } }
+  }
+  let botRow = IH - 1;
+  botSearch: for (let y = IH - 1; y >= 0; y--) {
+    for (let x = 0; x < IW; x++) { if (a(x, y) > 8) { botRow = y; break botSearch; } }
+  }
+
+  let tlX = 0, trX = IW - 1;
+  for (let x = 0; x < IW; x++)      { if (a(x, topRow) > 8) { tlX = x; break; } }
+  for (let x = IW - 1; x >= 0; x--) { if (a(x, topRow) > 8) { trX = x; break; } }
+
+  let blX = 0, brX = IW - 1;
+  for (let x = 0; x < IW; x++)      { if (a(x, botRow) > 8) { blX = x; break; } }
+  for (let x = IW - 1; x >= 0; x--) { if (a(x, botRow) > 8) { brX = x; break; } }
+
+  return { tl: [tlX, topRow], tr: [trX, topRow], bl: [blX, botRow], br: [brX, botRow] };
+}
+
+// Stroke a rounded polygon through an array of points using arcTo for each corner
+function drawRoundedPoly(
+  ctx: CanvasRenderingContext2D,
+  pts: { x: number; y: number }[],
+  r: number
+) {
+  const n = pts.length;
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const A = pts[(i - 1 + n) % n];
+    const B = pts[i];
+    const C = pts[(i + 1) % n];
+    const abLen = Math.hypot(B.x - A.x, B.y - A.y);
+    const cr = Math.min(r, abLen / 2);
+    const p1 = {
+      x: B.x - (B.x - A.x) / abLen * cr,
+      y: B.y - (B.y - A.y) / abLen * cr,
+    };
+    if (i === 0) ctx.moveTo(p1.x, p1.y);
+    else         ctx.lineTo(p1.x, p1.y);
+    ctx.arcTo(B.x, B.y, C.x, C.y, cr);
+  }
+  ctx.closePath();
+}
+
 function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -355,27 +414,24 @@ async function drawGraphic(
   ctx.drawImage(off, 0, 0);
   ctx.restore();
 
-  // ── 5b. 6px stroke border around photo frame shape ───────────────────────
+  // ── 5b. Vector stroke border with rounded corners ────────────────────────
   if (photoFrameImg) {
-    const strokeWidth = 6;
-    const strokeOff = document.createElement("canvas");
-    strokeOff.width  = W;
-    strokeOff.height = H;
-    const sCtx = strokeOff.getContext("2d")!;
+    const corners = getTrapezoidCorners(photoFrameImg);
+    const scaleX  = fW / photoFrameImg.naturalWidth;
+    const scaleY  = fH / photoFrameImg.naturalHeight;
 
-    // Draw frame enlarged by strokeWidth on each side — this becomes the outer edge
-    sCtx.drawImage(photoFrameImg, fX - strokeWidth, fY - strokeWidth, fW + strokeWidth * 2, fH + strokeWidth * 2);
+    const pts = [
+      { x: fX + corners.tl[0] * scaleX, y: fY + corners.tl[1] * scaleY },
+      { x: fX + corners.tr[0] * scaleX, y: fY + corners.tr[1] * scaleY },
+      { x: fX + corners.br[0] * scaleX, y: fY + corners.br[1] * scaleY },
+      { x: fX + corners.bl[0] * scaleX, y: fY + corners.bl[1] * scaleY },
+    ];
 
-    // Cut out the interior using the normal-size frame — leaves just the border ring
-    sCtx.globalCompositeOperation = "destination-out";
-    sCtx.drawImage(photoFrameImg, fX, fY, fW, fH);
-
-    // Color the remaining ring with the chosen border color
-    sCtx.globalCompositeOperation = "source-in";
-    sCtx.fillStyle = borderColorHex;
-    sCtx.fillRect(0, 0, W, H);
-
-    ctx.drawImage(strokeOff, 0, 0);
+    drawRoundedPoly(ctx, pts, 14);
+    ctx.strokeStyle = borderColorHex;
+    ctx.lineWidth   = 7;
+    ctx.stroke();
+    ctx.lineWidth   = 1;
   }
 
   // ── 6. Recruit name — Teko font ──────────────────────────────────────────
