@@ -333,6 +333,16 @@ async function drawGraphic(
     offCtx.globalCompositeOperation = "lighter";
     offCtx.fillStyle = primaryHex;
     offCtx.fillRect(0, 0, W, barH);
+
+    // Light filter overlay — drawn before destination-in so it gets clipped to bar shape
+    const filterOverlayImg = await loadImage("/filter-overlay.png");
+    if (filterOverlayImg) {
+      offCtx.globalCompositeOperation = "source-over";
+      offCtx.globalAlpha = 0.2;
+      offCtx.drawImage(filterOverlayImg, 0, 0, W, barH);
+      offCtx.globalAlpha = 1.0;
+    }
+
     offCtx.globalCompositeOperation = "destination-in";
     offCtx.drawImage(barImg, 0, 0, W, barH);
 
