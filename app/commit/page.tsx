@@ -731,7 +731,7 @@ export default function CommitPage() {
               <style>{`
                 @font-face {
                   font-family: 'Teko';
-                  src: url('/fonts/Teko-VariableFont_wght.ttf') format('truetype');
+                  src: url('/Teko-VariableFont_wght.ttf') format('truetype');
                 }
               `}</style>
               <canvas
