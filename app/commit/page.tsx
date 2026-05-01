@@ -230,9 +230,10 @@ async function drawGraphic(
     position: string;
     stars: number;
     photoOffset: { x: number; y: number };
+    borderColorHex: string;
   }
 ) {
-  const { primaryHex, logoImg, photoImg, recruitName, position, stars, photoOffset } = opts;
+  const { primaryHex, logoImg, photoImg, recruitName, position, stars, photoOffset, borderColorHex } = opts;
   const W = CANVAS_W, H = CANVAS_H;
 
   try {
@@ -354,9 +355,9 @@ async function drawGraphic(
   ctx.drawImage(off, 0, 0);
   ctx.restore();
 
-  // ── 5b. 3px stroke border around photo frame shape ───────────────────────
+  // ── 5b. 6px stroke border around photo frame shape ───────────────────────
   if (photoFrameImg) {
-    const strokeWidth = 3;
+    const strokeWidth = 6;
     const strokeOff = document.createElement("canvas");
     strokeOff.width  = W;
     strokeOff.height = H;
@@ -369,9 +370,9 @@ async function drawGraphic(
     sCtx.globalCompositeOperation = "destination-out";
     sCtx.drawImage(photoFrameImg, fX, fY, fW, fH);
 
-    // Color the remaining ring white
+    // Color the remaining ring with the chosen border color
     sCtx.globalCompositeOperation = "source-in";
-    sCtx.fillStyle = "#ffffff";
+    sCtx.fillStyle = borderColorHex;
     sCtx.fillRect(0, 0, W, H);
 
     ctx.drawImage(strokeOff, 0, 0);
@@ -382,6 +383,7 @@ async function drawGraphic(
   const nameText = recruitName ? recruitName.toUpperCase() : "RECRUIT NAME";
   const maxNameW = W - 220;
   let nameFontSize = 85;
+  ctx.letterSpacing = "6px";
   ctx.font = `400 ${nameFontSize}px "Teko", sans-serif`;
   const nw = ctx.measureText(nameText).width;
   if (nw > maxNameW) {
@@ -392,6 +394,7 @@ async function drawGraphic(
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillText(nameText, W / 2, nameY);
+  ctx.letterSpacing = "0px";
 
   // ── 7. Position | Stars — Teko font ──────────────────────────────────────
   const starsFull = "★".repeat(stars);
@@ -454,6 +457,7 @@ export default function CommitPage() {
   const [sessionPhotoData, setSessionPhotoData] = useState<{ imageData: string; mimeType: string; collegeName: string; collegeId: string } | null>(null);
   const [search, setSearch] = useState("");
   const [isRendering, setIsRendering] = useState(false);
+  const [borderUseSecondary, setBorderUseSecondary] = useState(false);
 
   const CONF_ORDER: Record<string, number> = { SEC: 0, "Big Ten": 1, ACC: 2, "Big 12": 3, Independent: 4 };
   const sortedColleges = [...COLLEGES].sort((a, b) => {
@@ -575,11 +579,12 @@ export default function CommitPage() {
         position,
         stars,
         photoOffset,
+        borderColorHex: borderUseSecondary ? (college?.secondaryHex ?? "#ffffff") : "#ffffff",
       });
     } finally {
       setIsRendering(false);
     }
-  }, [college, recruitName, position, stars, photoPreviewUrl, sessionPhotoData, photoOffset]);
+  }, [college, recruitName, position, stars, photoPreviewUrl, sessionPhotoData, photoOffset, borderUseSecondary]);
 
   useEffect(() => {
     renderCanvas();
@@ -712,6 +717,38 @@ export default function CommitPage() {
                   </>
                 )}
                 <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+              </div>
+
+              {/* Frame border color */}
+              <div className="mt-3">
+                <label className="block text-gray-400 text-sm mb-1.5">Frame Border Color</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setBorderUseSecondary(false)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition-all ${
+                      !borderUseSecondary
+                        ? "bg-gray-100 border-gray-100 text-gray-900 font-medium"
+                        : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500"
+                    }`}
+                  >
+                    <span className="w-4 h-4 rounded-full border border-gray-400 bg-white inline-block shrink-0" />
+                    White
+                  </button>
+                  <button
+                    onClick={() => setBorderUseSecondary(true)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition-all ${
+                      borderUseSecondary
+                        ? "bg-purple-600 border-purple-500 text-white font-medium"
+                        : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500"
+                    }`}
+                  >
+                    <span
+                      className="w-4 h-4 rounded-full inline-block shrink-0 border border-gray-500"
+                      style={{ background: college?.secondaryHex ?? "#888" }}
+                    />
+                    School Color
+                  </button>
+                </div>
               </div>
             </div>
 
