@@ -221,61 +221,40 @@ async function drawGraphic(
     photoOffset: { x: number; y: number };
   }
 ) {
-  const { primaryHex, secondaryHex, logoImg, photoImg, recruitName, position, stars, photoOffset } = opts;
+  const { primaryHex, logoImg, photoImg, recruitName, position, stars, photoOffset } = opts;
   const W = CANVAS_W, H = CANVAS_H;
 
   try {
-    await Promise.all([
-      document.fonts.load('160px "Anton"'),
-      document.fonts.load('160px "Kuunari"'),
-      document.fonts.load('160px "PODIUMSharp"'),
-    ]);
+    await document.fonts.load('160px "Teko"');
   } catch { /* ignore */ }
 
-  // ── Background ───────────────────────────────────────────────────────────
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, W, H);
+  // ── 1. Background: commit-texture.png ───────────────────────────────────
+  const textureImg = await loadImage("/commit-texture.png");
+  if (textureImg) {
+    ctx.drawImage(textureImg, 0, 0, W, H);
+  } else {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, W, H);
+  }
 
   // ── Layout constants ─────────────────────────────────────────────────────
-
-  // Photo trapezoid: 500px wide at top, 630px wide at bottom (centered)
   const photoTopY  = 330;
   const photoH     = 790;
-  const photoBotY  = photoTopY + photoH;               // 1120
-  const photoTopX  = (W - 500) / 2;                   // 290
-  const photoBotX  = (W - 630) / 2;                   // 225
-  const photoTopW  = 500;
+  const photoBotY  = photoTopY + photoH;   // 1120
+  const photoBotX  = (W - 630) / 2;        // 225
   const photoBotW  = 630;
+  const bandCenterY = photoTopY + photoH / 2 - 45;
 
-  // Full-width horizontal band: 530px tall at L/R edges, 500px tall at center
-  const bandCenterY = photoTopY + photoH / 2 - 45;     // shifted up 45px
-  const topAtEdge   = bandCenterY - 265;               // 460 — top edge at canvas sides
-  const topAtCenter = bandCenterY - 250;               // 475 — top edge at photo center
-  const botAtEdge   = bandCenterY + 265;               // 990 — bottom edge at canvas sides
-  const botAtCenter = bandCenterY + 250;               // 975 — bottom edge at photo center
-  // Quadratic bezier CPs so curve midpoint equals the center value
-  const topCPy      = 2 * topAtCenter - topAtEdge;    // 490
-  const botCPy      = 2 * botAtCenter - botAtEdge;    // 960
+  // ── 2. commit-bar.png ────────────────────────────────────────────────────
+  const barImg = await loadImage("/commit-bar.png");
+  if (barImg) {
+    const barH = W * (barImg.naturalHeight / barImg.naturalWidth);
+    ctx.drawImage(barImg, 0, bandCenterY - barH / 2, W, barH);
+  }
 
-  // ── Band path — full width, curved top/bottom edges ──────────────────────
-  const bandPath = () => {
-    ctx.beginPath();
-    ctx.moveTo(0, topAtEdge);
-    ctx.quadraticCurveTo(W / 2, topCPy, W, topAtEdge);  // top edge bows down in center
-    ctx.lineTo(W, botAtEdge);
-    ctx.quadraticCurveTo(W / 2, botCPy, 0, botAtEdge);  // bottom edge bows up in center
-    ctx.closePath();
-  };
-
-  ctx.fillStyle = primaryHex;
-  bandPath();
-  ctx.fill();
-
-  drawTopoLines(ctx, bandPath, topAtEdge, bandCenterY);
-
-  // ── School logo (natural shape, no circle crop) ──────────────────────────
-  const logoH    = 140;  // ← fixed height for every logo
-  const logoTopY = 22;   // ← top edge Y position
+  // ── 3. School logo ───────────────────────────────────────────────────────
+  const logoH    = 140;
+  const logoTopY = 22;
 
   if (logoImg) {
     const { sx, sy, sw, sh } = getOpaqueBounds(logoImg);
@@ -288,136 +267,106 @@ async function drawGraphic(
     ctx.arc(logoCX, logoCY, logoH / 2, 0, Math.PI * 2);
     ctx.fillStyle = primaryHex;
     ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.35)";
-    ctx.font = '38px "Anton", sans-serif';
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("LOGO", logoCX, logoCY);
   }
 
-  // ── "COMMITTED" text ─────────────────────────────────────────────────────
-  (ctx as unknown as Record<string, unknown>).letterSpacing = "-1px";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "#000000";
-  const committedSize = 129;
-  ctx.font = `${committedSize}px "PODIUMSharp", Impact, sans-serif`;
+  // ── 4. committed.png ─────────────────────────────────────────────────────
+  const committedImg = await loadImage("/committed.png");
+  if (committedImg) {
+    const cH = 100;
+    const cW = cH * (committedImg.naturalWidth / committedImg.naturalHeight);
+    ctx.drawImage(committedImg, W / 2 - cW / 2, 195, cW, cH);
+  }
+
+  // ── 5. Photo clipped to rectangle, commit-photo-frame.png on top ─────────
   ctx.save();
-  ctx.translate(W / 2, 298);
-  ctx.scale(1, 1.1);
-  ctx.fillText("COMMITTED", 0, 0);
-  ctx.restore();
-  (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
-
-  // ── Photo frame — trapezoidal (wider at bottom) ───────────────────────────
-  const bw = 7; // border width
-
-  // Helper: draw the trapezoid path (expandBy widens all edges)
-  const trapPath = (expand = 0) => {
-    ctx.beginPath();
-    ctx.moveTo(photoTopX - expand,       photoTopY - expand);
-    ctx.lineTo(W - photoTopX + expand,   photoTopY - expand);
-    ctx.lineTo(W - photoBotX + expand,   photoBotY + expand);
-    ctx.lineTo(photoBotX - expand,       photoBotY + expand);
-    ctx.closePath();
-  };
-
-  // School secondary color border + drop shadow
-  ctx.save();
-  ctx.shadowColor   = "rgba(0,0,0,0.55)";
-  ctx.shadowBlur    = 32;
-  ctx.shadowOffsetX = 6;
-  ctx.shadowOffsetY = 18;
-  trapPath(bw);
-  ctx.fillStyle = secondaryHex;
-  ctx.fill();
-  ctx.restore();
-
-  // Photo image clipped to trapezoid
-  trapPath(0);
-  ctx.save();
+  ctx.beginPath();
+  ctx.rect(photoBotX, photoTopY, photoBotW, photoH);
   ctx.clip();
   if (photoImg) {
-    // Scale image to cover the frame (object-fit: cover), then pan with offset
     const imgAspect   = photoImg.naturalWidth / photoImg.naturalHeight;
     const frameAspect = photoBotW / photoH;
     let drawW, drawH;
     if (imgAspect > frameAspect) {
-      // Image wider — fit height, extra width available for horizontal pan
       drawH = photoH;
       drawW = photoH * imgAspect;
     } else {
-      // Image taller — fit width, extra height available for vertical pan
       drawW = photoBotW;
       drawH = photoBotW / imgAspect;
     }
-    // Clamp offset so image always covers the frame with no gaps
     const maxOffsetX = (drawW - photoBotW) / 2;
-    const maxOffsetY = (drawH - photoH) / 2;
-    const clampedX = Math.max(-maxOffsetX, Math.min(maxOffsetX, photoOffset.x));
-    const clampedY = Math.max(-maxOffsetY, Math.min(maxOffsetY, photoOffset.y));
+    const maxOffsetY = (drawH - photoH)    / 2;
+    const clampedX   = Math.max(-maxOffsetX, Math.min(maxOffsetX, photoOffset.x));
+    const clampedY   = Math.max(-maxOffsetY, Math.min(maxOffsetY, photoOffset.y));
     const drawX = photoBotX - (drawW - photoBotW) / 2 + clampedX;
-    const drawY = photoTopY - (drawH - photoH) / 2 + clampedY;
-    ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight,
-      drawX, drawY, drawW, drawH);
+    const drawY = photoTopY - (drawH - photoH)    / 2 + clampedY;
+    ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight, drawX, drawY, drawW, drawH);
   } else {
     ctx.fillStyle = "#2a2a2a";
-    ctx.fillRect(0, photoTopY, W, photoH);
+    ctx.fillRect(photoBotX, photoTopY, photoBotW, photoH);
     ctx.fillStyle = "rgba(255,255,255,0.12)";
-    ctx.font = '44px "Anton", sans-serif';
+    ctx.font = "44px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("UPLOAD PHOTO", W / 2, photoTopY + photoH / 2);
   }
   ctx.restore();
 
-  // ── Recruit name ─────────────────────────────────────────────────────────
+  // Frame overlay (transparent center, decorative border)
+  const photoFrameImg = await loadImage("/commit-photo-frame.png");
+  if (photoFrameImg) {
+    const fH = photoH;
+    const fW = fH * (photoFrameImg.naturalWidth / photoFrameImg.naturalHeight);
+    ctx.save();
+    ctx.shadowColor   = "rgba(0,0,0,0.55)";
+    ctx.shadowBlur    = 32;
+    ctx.shadowOffsetX = 6;
+    ctx.shadowOffsetY = 18;
+    ctx.drawImage(photoFrameImg, W / 2 - fW / 2, photoTopY, fW, fH);
+    ctx.restore();
+  }
+
+  // ── 6. Recruit name — Teko font ──────────────────────────────────────────
   const nameY    = photoBotY + 102;
   const nameText = recruitName ? recruitName.toUpperCase() : "RECRUIT NAME";
   const maxNameW = W - 220;
-  (ctx as unknown as Record<string, unknown>).letterSpacing = "10px";
   let nameFontSize = 82;
-  ctx.font = `${nameFontSize}px "Kuunari", Impact, sans-serif`;
+  ctx.font = `700 ${nameFontSize}px "Teko", sans-serif`;
   const nw = ctx.measureText(nameText).width;
   if (nw > maxNameW) {
     nameFontSize = Math.max(Math.floor(nameFontSize * maxNameW / nw), 40);
-    ctx.font = `${nameFontSize}px "Kuunari", Impact, sans-serif`;
+    ctx.font = `700 ${nameFontSize}px "Teko", sans-serif`;
   }
   ctx.fillStyle = "#111111";
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillText(nameText, W / 2, nameY);
 
-  // ── Position | Stars ─────────────────────────────────────────────────────
-  (ctx as unknown as Record<string, unknown>).letterSpacing = "0px";
-  const starsFull  = "★".repeat(stars);
-  const starsText  = starsFull;
-  const posText    = position ? position.toUpperCase() : "";
-  const lineY      = nameY + 72;
+  // ── 7. Position | Stars — Teko font ──────────────────────────────────────
+  const starsFull = "★".repeat(stars);
+  const starsText = starsFull;
+  const posText   = position ? position.toUpperCase() : "";
+  const lineY     = nameY + 72;
 
-  ctx.font = '46px "Kuunari", Impact, sans-serif';
+  ctx.font = `700 46px "Teko", sans-serif`;
   ctx.textBaseline = "middle";
   ctx.textAlign    = "left";
 
-  // Approximate visual center of the caps (alphabetic baseline - half cap height)
-  const capCenter  = lineY - 16;
-  const sepH       = 54;   // separator taller than text
-  const sepW       = 4;
-  const sepGap     = 14;   // space on each side of the line
+  const capCenter = lineY - 16;
+  const sepH      = 54;
+  const sepW      = 4;
+  const sepGap    = 14;
 
-  const posW   = posText  ? ctx.measureText(posText).width  : 0;
+  const posW   = posText   ? ctx.measureText(posText).width   : 0;
   const starsW = starsText ? ctx.measureText(starsText).width : 0;
   const totalW = posW + (posText && starsText ? sepGap * 2 + sepW : 0) + starsW;
   let x = W / 2 - totalW / 2;
 
-  // Position text
   if (posText) {
     ctx.fillStyle = "#111111";
     ctx.fillText(posText, x, capCenter);
     x += posW;
   }
 
-  // Tall separator line
   if (posText && starsText) {
     x += sepGap;
     ctx.fillStyle = "#111111";
@@ -425,7 +374,6 @@ async function drawGraphic(
     x += sepW + sepGap;
   }
 
-  // Stars
   if (starsText) {
     ctx.fillStyle = "#a68a50";
     ctx.fillText(starsText, x, capCenter);
@@ -434,7 +382,7 @@ async function drawGraphic(
   ctx.textBaseline = "alphabetic";
   ctx.textAlign    = "center";
 
-  // ── Rivals watermark ─────────────────────────────────────────────────────
+  // ── 8. Rivals watermark ──────────────────────────────────────────────────
   const rivalsImg = await loadImage("/rivals.png");
   if (rivalsImg) {
     const rH = 51;
@@ -781,22 +729,9 @@ export default function CommitPage() {
             </div>
             <div className="relative bg-gray-900 rounded-xl overflow-hidden">
               <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
                 @font-face {
-                  font-family: 'SteelfishBd';
-                  src: url('/fonts/Steelfish%20Bd.otf') format('opentype');
-                }
-                @font-face {
-                  font-family: 'SteelfishRg';
-                  src: url('/fonts/Steelfish%20Rg.otf') format('opentype');
-                }
-                @font-face {
-                  font-family: 'Kuunari';
-                  src: url('/fonts/Kuunari-MediumCondensed.otf') format('opentype');
-                }
-                @font-face {
-                  font-family: 'PODIUMSharp';
-                  src: url('/fonts/PODIUMSharp-6.11.otf') format('opentype');
+                  font-family: 'Teko';
+                  src: url('/fonts/Teko-VariableFont_wght.ttf') format('truetype');
                 }
               `}</style>
               <canvas
