@@ -260,7 +260,7 @@ async function drawGraphic(
   const barImg = await loadImage("/commit-bar.png");
   if (barImg) {
     const barH = W * (barImg.naturalHeight / barImg.naturalWidth);
-    const barY = bandCenterY - barH / 2 + 25;
+    const barY = bandCenterY - barH / 2 + 1;
 
     // Offscreen: lighter (Linear Dodge) recolors black → primary while keeping topo pattern,
     // then destination-in clips result to bar's opaque shape only.
@@ -375,7 +375,10 @@ async function drawGraphic(
     sCtx.fillStyle = borderColorHex;
     sCtx.fillRect(0, 0, W, H);
 
+    // Blur softens the corners of the stroke ring
+    ctx.filter = "blur(4px)";
     ctx.drawImage(strokeOff, 0, 0);
+    ctx.filter = "none";
   }
 
   // ── 6. Recruit name — Teko font ──────────────────────────────────────────
