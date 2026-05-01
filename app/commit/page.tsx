@@ -253,9 +253,9 @@ async function drawGraphic(
     // Draw the inverse bar first
     ctx.drawImage(barImg, 0, barY, W, barH);
 
-    // Linear Dodge (Add): adds primary color on top, school-coloring the bar
+    // Multiply: school primary color tints the bar
     ctx.save();
-    ctx.globalCompositeOperation = "lighter";
+    ctx.globalCompositeOperation = "multiply";
     ctx.fillStyle = primaryHex;
     const barRect = new Path2D();
     barRect.rect(0, barY, W, barH);
