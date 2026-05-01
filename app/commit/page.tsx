@@ -228,13 +228,12 @@ async function drawGraphic(
     await document.fonts.load('160px "Teko"');
   } catch { /* ignore */ }
 
-  // ── 1. Background: commit-texture.png ───────────────────────────────────
+  // ── 1. Background: white + commit-texture.png overlay ───────────────────
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, W, H);
   const textureImg = await loadImage("/commit-texture.png");
   if (textureImg) {
     ctx.drawImage(textureImg, 0, 0, W, H);
-  } else {
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, W, H);
   }
 
   // ── Layout constants ─────────────────────────────────────────────────────
