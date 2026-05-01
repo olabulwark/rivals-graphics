@@ -307,7 +307,9 @@ async function drawGraphic(
   ctx.fillRect(0, 0, W, H);
   const textureImg = await loadImage("/commit-texture.png");
   if (textureImg) {
+    ctx.globalAlpha = 0.5;
     ctx.drawImage(textureImg, 0, 0, W, H);
+    ctx.globalAlpha = 1.0;
   }
 
   // ── Layout constants ─────────────────────────────────────────────────────
