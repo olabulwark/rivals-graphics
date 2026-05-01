@@ -289,10 +289,11 @@ async function drawGraphic(
     position: string;
     stars: number;
     photoOffset: { x: number; y: number };
+    photoZoom: number;
     borderColorHex: string;
   }
 ) {
-  const { primaryHex, logoImg, photoImg, recruitName, position, stars, photoOffset, borderColorHex } = opts;
+  const { primaryHex, logoImg, photoImg, recruitName, position, stars, photoOffset, photoZoom, borderColorHex } = opts;
   const W = CANVAS_W, H = CANVAS_H;
 
   try {
@@ -393,8 +394,9 @@ async function drawGraphic(
     let drawW, drawH;
     if (imgAspect > frameAspect) { drawH = fH; drawW = fH * imgAspect; }
     else                         { drawW = fW; drawH = fW / imgAspect; }
-    const maxOffsetX = (drawW - fW) / 2;
-    const maxOffsetY = (drawH - fH) / 2;
+    drawW *= photoZoom; drawH *= photoZoom;
+    const maxOffsetX = Math.max(0, (drawW - fW) / 2);
+    const maxOffsetY = Math.max(0, (drawH - fH) / 2);
     const clampedX   = Math.max(-maxOffsetX, Math.min(maxOffsetX, photoOffset.x));
     const clampedY   = Math.max(-maxOffsetY, Math.min(maxOffsetY, photoOffset.y));
     const drawX      = fX - (drawW - fW) / 2 + clampedX;
@@ -541,8 +543,9 @@ export default function CommitPage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [photoDragging, setPhotoDragging] = useState(false);
 
-  // Photo pan offset within the canvas frame
+  // Photo pan offset and zoom within the canvas frame
   const [photoOffset, setPhotoOffset] = useState({ x: 0, y: 0 });
+  const [photoZoom, setPhotoZoom] = useState(1.0);
   const isPanning = useRef(false);
   const panLastPos = useRef({ x: 0, y: 0 });
   const [isPanningState, setIsPanningState] = useState(false);
@@ -580,12 +583,28 @@ export default function CommitPage() {
     setIsPanningState(false);
   };
 
+  // Scroll-wheel zoom on canvas
+  const handleWheel = useCallback((e: WheelEvent) => {
+    if (!hasPhoto) return;
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+    setPhotoZoom(prev => Math.max(1.0, Math.min(4.0, Math.round((prev + delta) * 10) / 10)));
+  }, [hasPhoto]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", handleWheel);
+  }, [handleWheel]);
+
   const handlePhotoFile = (file: File) => {
     if (!file.type.startsWith("image/")) return;
     setPhotoFile(file);
     setPhotoPreviewUrl(URL.createObjectURL(file));
     setSessionPhotoData(null);
     setPhotoOffset({ x: 0, y: 0 });
+    setPhotoZoom(1.0);
   };
 
   // Handle new file upload
@@ -635,12 +654,13 @@ export default function CommitPage() {
         position,
         stars,
         photoOffset,
+        photoZoom,
         borderColorHex: borderUseSecondary ? (college?.secondaryHex ?? "#ffffff") : "#ffffff",
       });
     } finally {
       setIsRendering(false);
     }
-  }, [college, recruitName, position, stars, photoPreviewUrl, sessionPhotoData, photoOffset, borderUseSecondary]);
+  }, [college, recruitName, position, stars, photoPreviewUrl, sessionPhotoData, photoOffset, photoZoom, borderUseSecondary]);
 
   useEffect(() => {
     renderCanvas();
@@ -775,6 +795,22 @@ export default function CommitPage() {
                 <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
               </div>
 
+              {/* Zoom slider */}
+              {hasPhoto && (
+                <div className="mt-3 flex items-center gap-3">
+                  <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                  </svg>
+                  <input
+                    type="range" min="1.0" max="4.0" step="0.05"
+                    value={photoZoom}
+                    onChange={e => setPhotoZoom(parseFloat(e.target.value))}
+                    className="flex-1 accent-purple-500"
+                  />
+                  <span className="text-gray-400 text-xs w-8 text-right">{photoZoom.toFixed(1)}×</span>
+                </div>
+              )}
+
               {/* Frame border color */}
               <div className="mt-3">
                 <label className="block text-gray-400 text-sm mb-1.5">Frame Border Color</label>
@@ -889,12 +925,12 @@ export default function CommitPage() {
                 onMouseUp={handleCanvasMouseUp}
                 onMouseLeave={handleCanvasMouseUp}
               />
-              {hasPhoto && (photoOffset.x !== 0 || photoOffset.y !== 0) && (
+              {hasPhoto && (photoOffset.x !== 0 || photoOffset.y !== 0 || photoZoom !== 1.0) && (
                 <button
-                  onClick={() => setPhotoOffset({ x: 0, y: 0 })}
+                  onClick={() => { setPhotoOffset({ x: 0, y: 0 }); setPhotoZoom(1.0); }}
                   className="absolute bottom-3 left-3 bg-black/60 hover:bg-black/80 text-white text-xs px-2.5 py-1.5 rounded-lg transition-colors"
                 >
-                  Reset position
+                  Reset photo
                 </button>
               )}
             </div>
