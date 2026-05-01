@@ -894,7 +894,6 @@ export default function CommitPage() {
                   Bar overlay {showFilterOverlay ? "ON" : "OFF"}
                 </button>
               </div>
-            </div>
 
             {/* Recruit info */}
             <div>
