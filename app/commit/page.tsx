@@ -375,10 +375,7 @@ async function drawGraphic(
     sCtx.fillStyle = borderColorHex;
     sCtx.fillRect(0, 0, W, H);
 
-    // Blur softens the corners of the stroke ring
-    ctx.filter = "blur(4px)";
     ctx.drawImage(strokeOff, 0, 0);
-    ctx.filter = "none";
   }
 
   // ── 6. Recruit name — Teko font ──────────────────────────────────────────
