@@ -460,7 +460,9 @@ async function drawGraphic(
   const posText   = position ? position.toUpperCase() : "";
   const lineY     = nameY + 72;
 
-  ctx.textBaseline = "middle";
+  // Use alphabetic baseline + actual bounding box metrics so both elements
+  // share the exact same visual center line regardless of font size or glyph shape.
+  ctx.textBaseline = "alphabetic";
   ctx.textAlign    = "left";
 
   const capCenter  = lineY - 16;
@@ -469,11 +471,24 @@ async function drawGraphic(
   const sepGap     = 14;
   const starsFontSize = 54;
 
+  // Measure each element and compute the y that places its visual center at capCenter.
+  // With alphabetic baseline: visual center = y - (asc - desc) / 2
+  // So y = capCenter + (asc - desc) / 2
   ctx.font = `400 54px "Teko", sans-serif`;
-  const posW = posText ? ctx.measureText(posText).width : 0;
+  let posW = 0, posY = capCenter;
+  if (posText) {
+    const m = ctx.measureText(posText);
+    posW = m.width;
+    posY = capCenter + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+  }
 
   ctx.font = `400 ${starsFontSize}px "Teko", sans-serif`;
-  const starsW = starsText ? ctx.measureText(starsText).width : 0;
+  let starsW = 0, starsY = capCenter;
+  if (starsText) {
+    const m = ctx.measureText(starsText);
+    starsW = m.width;
+    starsY = capCenter + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+  }
 
   const totalW = posW + (posText && starsText ? sepGap * 2 + sepW : 0) + starsW;
   let x = W / 2 - totalW / 2;
@@ -481,7 +496,7 @@ async function drawGraphic(
   if (posText) {
     ctx.font = `400 54px "Teko", sans-serif`;
     ctx.fillStyle = "#111111";
-    ctx.fillText(posText, x, capCenter);
+    ctx.fillText(posText, x, posY);
     x += posW;
   }
 
@@ -495,7 +510,7 @@ async function drawGraphic(
   if (starsText) {
     ctx.font = `400 ${starsFontSize}px "Teko", sans-serif`;
     ctx.fillStyle = "#a68a50";
-    ctx.fillText(starsText, x, capCenter);
+    ctx.fillText(starsText, x, starsY);
   }
 
   ctx.textBaseline = "alphabetic";
