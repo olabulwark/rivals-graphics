@@ -22,7 +22,6 @@ export default function Home() {
               <div>
                 <div className="flex items-center gap-2">
                   <p className="text-white font-semibold text-base">Recruiting News</p>
-                  <span className="text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded px-1.5 py-0.5 leading-none">WIP</span>
                 </div>
                 <p className="text-gray-500 text-sm">Generate a recruiting news alert graphic</p>
               </div>
