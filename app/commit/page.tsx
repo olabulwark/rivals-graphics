@@ -460,21 +460,26 @@ async function drawGraphic(
   const posText   = position ? position.toUpperCase() : "";
   const lineY     = nameY + 72;
 
-  ctx.font = `400 57px "Teko", sans-serif`;
   ctx.textBaseline = "middle";
   ctx.textAlign    = "left";
 
-  const capCenter = lineY - 16;
-  const sepH      = 54;
-  const sepW      = 4;
-  const sepGap    = 14;
+  const capCenter  = lineY - 16;
+  const sepH       = 54;
+  const sepW       = 4;
+  const sepGap     = 14;
+  const starsFontSize = 32;
 
-  const posW   = posText   ? ctx.measureText(posText).width   : 0;
+  ctx.font = `400 57px "Teko", sans-serif`;
+  const posW = posText ? ctx.measureText(posText).width : 0;
+
+  ctx.font = `400 ${starsFontSize}px "Teko", sans-serif`;
   const starsW = starsText ? ctx.measureText(starsText).width : 0;
+
   const totalW = posW + (posText && starsText ? sepGap * 2 + sepW : 0) + starsW;
   let x = W / 2 - totalW / 2;
 
   if (posText) {
+    ctx.font = `400 57px "Teko", sans-serif`;
     ctx.fillStyle = "#111111";
     ctx.fillText(posText, x, capCenter);
     x += posW;
@@ -488,6 +493,7 @@ async function drawGraphic(
   }
 
   if (starsText) {
+    ctx.font = `400 ${starsFontSize}px "Teko", sans-serif`;
     ctx.fillStyle = "#a68a50";
     ctx.fillText(starsText, x, capCenter);
   }
