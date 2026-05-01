@@ -244,20 +244,25 @@ async function drawGraphic(
   const photoBotW  = 630;
   const bandCenterY = photoTopY + photoH / 2 - 45;
 
-  // ── 2. commit-bar.png tinted with school primary color ───────────────────
+  // ── 2. commit-bar.png with black recolored to school primary color ───────
   const barImg = await loadImage("/commit-bar.png");
   if (barImg) {
     const barH = W * (barImg.naturalHeight / barImg.naturalWidth);
     const barY = bandCenterY - barH / 2;
 
-    // Fill bar area with primary color, then multiply the bar PNG on top
-    ctx.fillStyle = primaryHex;
-    ctx.fillRect(0, barY, W, barH);
+    // Offscreen: draw bar PNG to capture its shape/alpha,
+    // then source-in fills every opaque pixel with the primary color.
+    const off = document.createElement("canvas");
+    off.width  = W;
+    off.height = Math.ceil(barH);
+    const offCtx = off.getContext("2d")!;
 
-    ctx.save();
-    ctx.globalCompositeOperation = "multiply";
-    ctx.drawImage(barImg, 0, barY, W, barH);
-    ctx.restore();
+    offCtx.drawImage(barImg, 0, 0, W, barH);
+    offCtx.globalCompositeOperation = "source-in";
+    offCtx.fillStyle = primaryHex;
+    offCtx.fillRect(0, 0, W, barH);
+
+    ctx.drawImage(off, 0, barY);
   }
 
   // ── 3. School logo ───────────────────────────────────────────────────────
