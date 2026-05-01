@@ -277,7 +277,10 @@ async function drawGraphic(
     ctx.drawImage(committedImg, W / 2 - cW / 2, 195, cW, cH);
   }
 
-  // ── 5. Photo clipped to frame shape, frame drawn on top ──────────────────
+  // ── 5. Photo clipped to exact shape of commit-photo-frame.png ───────────
+  // The frame PNG is a shape reference only — it is NEVER drawn to the canvas.
+  // We use it as an alpha mask: draw frame on offscreen, then source-in clips
+  // the photo to exactly the frame's opaque pixels.
   const photoFrameImg = await loadImage("/commit-photo-frame.png");
   const fH = photoH;
   const fW = photoFrameImg
@@ -286,8 +289,19 @@ async function drawGraphic(
   const fX = W / 2 - fW / 2;
   const fY = photoTopY;
 
+  const off = document.createElement("canvas");
+  off.width  = W;
+  off.height = H;
+  const offCtx = off.getContext("2d")!;
+
+  if (photoFrameImg) {
+    // Step 1: paint the frame shape onto the offscreen canvas
+    offCtx.drawImage(photoFrameImg, fX, fY, fW, fH);
+    // Step 2: source-in — only pixels that overlap the frame shape survive
+    offCtx.globalCompositeOperation = "source-in";
+  }
+
   if (photoImg) {
-    // Scale photo to cover the frame area (object-fit: cover)
     const imgAspect   = photoImg.naturalWidth / photoImg.naturalHeight;
     const frameAspect = fW / fH;
     let drawW, drawH;
@@ -299,34 +313,20 @@ async function drawGraphic(
     const clampedY   = Math.max(-maxOffsetY, Math.min(maxOffsetY, photoOffset.y));
     const drawX      = fX - (drawW - fW) / 2 + clampedX;
     const drawY      = fY - (drawH - fH) / 2 + clampedY;
-
-    // Draw photo clipped to the frame's bounding rectangle
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(fX, fY, fW, fH);
-    ctx.clip();
-    ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight, drawX, drawY, drawW, drawH);
-    ctx.restore();
+    offCtx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight, drawX, drawY, drawW, drawH);
   } else {
-    ctx.fillStyle = "#2a2a2a";
-    ctx.fillRect(fX, fY, fW, fH);
-    ctx.fillStyle = "rgba(255,255,255,0.12)";
-    ctx.font = "44px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("UPLOAD PHOTO", W / 2, fY + fH / 2);
+    offCtx.fillStyle = "#2a2a2a";
+    offCtx.fillRect(fX, fY, fW, fH);
   }
 
-  // Draw frame on top — its opaque border covers photo edges, transparent center shows photo
-  if (photoFrameImg) {
-    ctx.save();
-    ctx.shadowColor   = "rgba(0,0,0,0.55)";
-    ctx.shadowBlur    = 32;
-    ctx.shadowOffsetX = 6;
-    ctx.shadowOffsetY = 18;
-    ctx.drawImage(photoFrameImg, fX, fY, fW, fH);
-    ctx.restore();
-  }
+  // Step 3: composite the masked result onto the main canvas
+  ctx.save();
+  ctx.shadowColor   = "rgba(0,0,0,0.55)";
+  ctx.shadowBlur    = 32;
+  ctx.shadowOffsetX = 6;
+  ctx.shadowOffsetY = 18;
+  ctx.drawImage(off, 0, 0);
+  ctx.restore();
 
   // ── 6. Recruit name — Teko font ──────────────────────────────────────────
   const nameY    = photoBotY + 102;
