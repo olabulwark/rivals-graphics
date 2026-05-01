@@ -244,11 +244,20 @@ async function drawGraphic(
   const photoBotW  = 630;
   const bandCenterY = photoTopY + photoH / 2 - 45;
 
-  // ── 2. commit-bar.png ────────────────────────────────────────────────────
+  // ── 2. commit-bar.png tinted with school primary color ───────────────────
   const barImg = await loadImage("/commit-bar.png");
   if (barImg) {
     const barH = W * (barImg.naturalHeight / barImg.naturalWidth);
-    ctx.drawImage(barImg, 0, bandCenterY - barH / 2, W, barH);
+    const barY = bandCenterY - barH / 2;
+
+    // Fill bar area with primary color, then multiply the bar PNG on top
+    ctx.fillStyle = primaryHex;
+    ctx.fillRect(0, barY, W, barH);
+
+    ctx.save();
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(barImg, 0, barY, W, barH);
+    ctx.restore();
   }
 
   // ── 3. School logo ───────────────────────────────────────────────────────
