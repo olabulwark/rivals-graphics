@@ -6,8 +6,19 @@ import { COLLEGES, College } from "@/lib/colleges";
 const CANVAS_W = 1080;
 const CANVAS_H = 1350;
 
-// Try to load a logo from the jersey library (tries all extensions)
+// Map college IDs to logos-real slugs where they differ
+const LOGO_SLUG_MAP: Record<string, string> = {
+  "texas-am":   "texas-a-and-m",
+  "pittsburgh": "pitt",
+};
+
+// Try logos-real first, then fall back to jersey library
 async function loadLogoImage(collegeId: string): Promise<HTMLImageElement | null> {
+  const slug = LOGO_SLUG_MAP[collegeId] ?? collegeId;
+  const realLogo = await loadImage(`/logos-real/${slug}.png`);
+  if (realLogo) return realLogo;
+
+  // Fallback: jersey library
   const exts = ["png", "jpg", "webp", "jpeg"];
   for (const ext of exts) {
     try {
