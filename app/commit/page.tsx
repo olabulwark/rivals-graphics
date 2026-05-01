@@ -291,9 +291,10 @@ async function drawGraphic(
     photoOffset: { x: number; y: number };
     photoZoom: number;
     borderColorHex: string;
+    showFilterOverlay: boolean;
   }
 ) {
-  const { primaryHex, logoImg, photoImg, recruitName, position, stars, photoOffset, photoZoom, borderColorHex } = opts;
+  const { primaryHex, logoImg, photoImg, recruitName, position, stars, photoOffset, photoZoom, borderColorHex, showFilterOverlay } = opts;
   const W = CANVAS_W, H = CANVAS_H;
 
   try {
@@ -335,12 +336,14 @@ async function drawGraphic(
     offCtx.fillRect(0, 0, W, barH);
 
     // Light filter overlay — drawn before destination-in so it gets clipped to bar shape
-    const filterOverlayImg = await loadImage("/filter-overlay.png");
-    if (filterOverlayImg) {
-      offCtx.globalCompositeOperation = "source-over";
-      offCtx.globalAlpha = 0.2;
-      offCtx.drawImage(filterOverlayImg, 0, 0, W, barH);
-      offCtx.globalAlpha = 1.0;
+    if (showFilterOverlay) {
+      const filterOverlayImg = await loadImage("/filter-overlay.png");
+      if (filterOverlayImg) {
+        offCtx.globalCompositeOperation = "source-over";
+        offCtx.globalAlpha = 0.2;
+        offCtx.drawImage(filterOverlayImg, 0, 0, W, barH);
+        offCtx.globalAlpha = 1.0;
+      }
     }
 
     offCtx.globalCompositeOperation = "destination-in";
@@ -547,6 +550,7 @@ export default function CommitPage() {
   const [search, setSearch] = useState("");
   const [isRendering, setIsRendering] = useState(false);
   const [borderUseSecondary, setBorderUseSecondary] = useState(false);
+  const [showFilterOverlay, setShowFilterOverlay] = useState(true);
 
   const CONF_ORDER: Record<string, number> = { SEC: 0, "Big Ten": 1, ACC: 2, "Big 12": 3, Independent: 4 };
   const sortedColleges = [...COLLEGES].sort((a, b) => {
@@ -687,11 +691,12 @@ export default function CommitPage() {
         photoOffset,
         photoZoom,
         borderColorHex: borderUseSecondary ? (college?.secondaryHex ?? "#ffffff") : "#ffffff",
+        showFilterOverlay,
       });
     } finally {
       setIsRendering(false);
     }
-  }, [college, recruitName, position, stars, photoPreviewUrl, sessionPhotoData, photoOffset, photoZoom, borderUseSecondary]);
+  }, [college, recruitName, position, stars, photoPreviewUrl, sessionPhotoData, photoOffset, photoZoom, borderUseSecondary, showFilterOverlay]);
 
   useEffect(() => {
     renderCanvas();
@@ -872,6 +877,22 @@ export default function CommitPage() {
                     School Color
                   </button>
                 </div>
+              </div>
+            </div>
+
+              {/* Filter overlay toggle */}
+              <div className="mt-3">
+                <button
+                  onClick={() => setShowFilterOverlay(prev => !prev)}
+                  className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                    showFilterOverlay
+                      ? "bg-yellow-500/20 border-yellow-500/40 text-yellow-400"
+                      : "bg-gray-800 border-gray-700 text-gray-500"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${showFilterOverlay ? "bg-yellow-400" : "bg-gray-600"}`} />
+                  Bar overlay {showFilterOverlay ? "ON" : "OFF"}
+                </button>
               </div>
             </div>
 
