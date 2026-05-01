@@ -277,87 +277,54 @@ async function drawGraphic(
     ctx.drawImage(committedImg, W / 2 - cW / 2, 195, cW, cH);
   }
 
-  // ── 5. Photo masked to exact shape of commit-photo-frame.png ────────────
+  // ── 5. Photo clipped to frame shape, frame drawn on top ──────────────────
   const photoFrameImg = await loadImage("/commit-photo-frame.png");
+  const fH = photoH;
+  const fW = photoFrameImg
+    ? fH * (photoFrameImg.naturalWidth / photoFrameImg.naturalHeight)
+    : photoBotW;
+  const fX = W / 2 - fW / 2;
+  const fY = photoTopY;
+
+  if (photoImg) {
+    // Scale photo to cover the frame area (object-fit: cover)
+    const imgAspect   = photoImg.naturalWidth / photoImg.naturalHeight;
+    const frameAspect = fW / fH;
+    let drawW, drawH;
+    if (imgAspect > frameAspect) { drawH = fH; drawW = fH * imgAspect; }
+    else                         { drawW = fW; drawH = fW / imgAspect; }
+    const maxOffsetX = (drawW - fW) / 2;
+    const maxOffsetY = (drawH - fH) / 2;
+    const clampedX   = Math.max(-maxOffsetX, Math.min(maxOffsetX, photoOffset.x));
+    const clampedY   = Math.max(-maxOffsetY, Math.min(maxOffsetY, photoOffset.y));
+    const drawX      = fX - (drawW - fW) / 2 + clampedX;
+    const drawY      = fY - (drawH - fH) / 2 + clampedY;
+
+    // Draw photo clipped to the frame's bounding rectangle
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(fX, fY, fW, fH);
+    ctx.clip();
+    ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight, drawX, drawY, drawW, drawH);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = "#2a2a2a";
+    ctx.fillRect(fX, fY, fW, fH);
+    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    ctx.font = "44px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("UPLOAD PHOTO", W / 2, fY + fH / 2);
+  }
+
+  // Draw frame on top — its opaque border covers photo edges, transparent center shows photo
   if (photoFrameImg) {
-    const fH = photoH;
-    const fW = fH * (photoFrameImg.naturalWidth / photoFrameImg.naturalHeight);
-    const fX = W / 2 - fW / 2;
-    const fY = photoTopY;
-
-    // Offscreen canvas: use frame as alpha mask, then draw photo clipped to it
-    const off = document.createElement("canvas");
-    off.width  = W;
-    off.height = H;
-    const offCtx = off.getContext("2d")!;
-
-    // 1. Draw frame — establishes the opaque mask region
-    offCtx.drawImage(photoFrameImg, fX, fY, fW, fH);
-
-    // 2. source-in: only draw where existing pixels are opaque
-    offCtx.globalCompositeOperation = "source-in";
-
-    if (photoImg) {
-      const imgAspect   = photoImg.naturalWidth / photoImg.naturalHeight;
-      const frameAspect = fW / fH;
-      let drawW, drawH;
-      if (imgAspect > frameAspect) {
-        drawH = fH;
-        drawW = fH * imgAspect;
-      } else {
-        drawW = fW;
-        drawH = fW / imgAspect;
-      }
-      const maxOffsetX = (drawW - fW) / 2;
-      const maxOffsetY = (drawH - fH) / 2;
-      const clampedX   = Math.max(-maxOffsetX, Math.min(maxOffsetX, photoOffset.x));
-      const clampedY   = Math.max(-maxOffsetY, Math.min(maxOffsetY, photoOffset.y));
-      const drawX = fX - (drawW - fW) / 2 + clampedX;
-      const drawY = fY - (drawH - fH) / 2 + clampedY;
-      offCtx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight, drawX, drawY, drawW, drawH);
-    } else {
-      offCtx.fillStyle = "#2a2a2a";
-      offCtx.fillRect(fX, fY, fW, fH);
-    }
-
-    // 3. Composite masked photo onto main canvas
     ctx.save();
     ctx.shadowColor   = "rgba(0,0,0,0.55)";
     ctx.shadowBlur    = 32;
     ctx.shadowOffsetX = 6;
     ctx.shadowOffsetY = 18;
-    ctx.drawImage(off, 0, 0);
-    ctx.restore();
-
-    // 4. Draw frame on top for any border/overlay elements
     ctx.drawImage(photoFrameImg, fX, fY, fW, fH);
-
-    if (!photoImg) {
-      ctx.fillStyle = "rgba(255,255,255,0.12)";
-      ctx.font = "44px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("UPLOAD PHOTO", W / 2, fY + fH / 2);
-    }
-  } else if (photoImg) {
-    // Fallback: plain rectangle clip if frame image fails to load
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(photoBotX, photoTopY, photoBotW, photoH);
-    ctx.clip();
-    const imgAspect   = photoImg.naturalWidth / photoImg.naturalHeight;
-    const frameAspect = photoBotW / photoH;
-    let drawW, drawH;
-    if (imgAspect > frameAspect) { drawH = photoH; drawW = photoH * imgAspect; }
-    else                         { drawW = photoBotW; drawH = photoBotW / imgAspect; }
-    const maxOffsetX = (drawW - photoBotW) / 2;
-    const maxOffsetY = (drawH - photoH) / 2;
-    const clampedX   = Math.max(-maxOffsetX, Math.min(maxOffsetX, photoOffset.x));
-    const clampedY   = Math.max(-maxOffsetY, Math.min(maxOffsetY, photoOffset.y));
-    ctx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight,
-      photoBotX - (drawW - photoBotW) / 2 + clampedX,
-      photoTopY - (drawH - photoH)    / 2 + clampedY,
-      drawW, drawH);
     ctx.restore();
   }
 
