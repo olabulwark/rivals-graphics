@@ -250,15 +250,21 @@ async function drawGraphic(
     const barH = W * (barImg.naturalHeight / barImg.naturalWidth);
     const barY = bandCenterY - barH / 2;
 
-    // Fill bar area with primary color
-    ctx.fillStyle = primaryHex;
-    ctx.fillRect(0, barY, W, barH);
+    // Offscreen: lighter (Linear Dodge) recolors black → primary while keeping topo pattern,
+    // then destination-in clips result to bar's opaque shape only.
+    const off = document.createElement("canvas");
+    off.width  = W;
+    off.height = Math.ceil(barH);
+    const offCtx = off.getContext("2d")!;
 
-    // Multiply: white areas of bar PNG disappear, dark topo lines darken the primary color
-    ctx.save();
-    ctx.globalCompositeOperation = "multiply";
-    ctx.drawImage(barImg, 0, barY, W, barH);
-    ctx.restore();
+    offCtx.drawImage(barImg, 0, 0, W, barH);
+    offCtx.globalCompositeOperation = "lighter";
+    offCtx.fillStyle = primaryHex;
+    offCtx.fillRect(0, 0, W, barH);
+    offCtx.globalCompositeOperation = "destination-in";
+    offCtx.drawImage(barImg, 0, 0, W, barH);
+
+    ctx.drawImage(off, 0, barY);
   }
 
   // ── 3. School logo ───────────────────────────────────────────────────────
