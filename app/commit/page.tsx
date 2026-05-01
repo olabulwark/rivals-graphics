@@ -467,7 +467,7 @@ async function drawGraphic(
   const sepH       = 54;
   const sepW       = 4;
   const sepGap     = 14;
-  const starsFontSize = 32;
+  const starsFontSize = 54;
 
   ctx.font = `400 57px "Teko", sans-serif`;
   const posW = posText ? ctx.measureText(posText).width : 0;
