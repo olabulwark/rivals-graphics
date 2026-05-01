@@ -244,8 +244,8 @@ async function drawGraphic(
   const photoBotW  = 630;
   const bandCenterY = photoTopY + photoH / 2 - 45;
 
-  // ── 2. commit-bar-inverse.png + Linear Dodge (Add) for school color ───────
-  const barImg = await loadImage("/commit-bar-inverse.png");
+  // ── 2. commit-bar.png + Linear Dodge (Add) for school color ────────────
+  const barImg = await loadImage("/commit-bar.png");
   if (barImg) {
     const barH = W * (barImg.naturalHeight / barImg.naturalWidth);
     const barY = bandCenterY - barH / 2;
@@ -253,9 +253,9 @@ async function drawGraphic(
     // Draw the inverse bar first
     ctx.drawImage(barImg, 0, barY, W, barH);
 
-    // Multiply: school primary color tints the bar
+    // Linear Dodge (Add): school primary color tints the bar
     ctx.save();
-    ctx.globalCompositeOperation = "multiply";
+    ctx.globalCompositeOperation = "lighter";
     ctx.fillStyle = primaryHex;
     const barRect = new Path2D();
     barRect.rect(0, barY, W, barH);
