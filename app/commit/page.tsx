@@ -244,31 +244,23 @@ async function drawGraphic(
   const photoBotW  = 630;
   const bandCenterY = photoTopY + photoH / 2 - 45;
 
-  // ── 2. commit-bar.png recolored to school primary while keeping pattern ───
-  const barImg = await loadImage("/commit-bar.png");
+  // ── 2. commit-bar-inverse.png + Linear Dodge (Add) for school color ───────
+  const barImg = await loadImage("/commit-bar-inverse.png");
   if (barImg) {
     const barH = W * (barImg.naturalHeight / barImg.naturalWidth);
     const barY = bandCenterY - barH / 2;
 
-    const off = document.createElement("canvas");
-    off.width  = W;
-    off.height = Math.ceil(barH);
-    const offCtx = off.getContext("2d")!;
+    // Draw the inverse bar first
+    ctx.drawImage(barImg, 0, barY, W, barH);
 
-    // 1. Fill with primary color
-    offCtx.fillStyle = primaryHex;
-    offCtx.fillRect(0, 0, W, barH);
-
-    // 2. Luminosity blend: uses bar PNG's light/dark values (topo pattern)
-    //    while keeping the primary color's hue and saturation
-    offCtx.globalCompositeOperation = "luminosity";
-    offCtx.drawImage(barImg, 0, 0, W, barH);
-
-    // 3. Clip result to bar's actual shape (removes fully transparent areas)
-    offCtx.globalCompositeOperation = "destination-in";
-    offCtx.drawImage(barImg, 0, 0, W, barH);
-
-    ctx.drawImage(off, 0, barY);
+    // Linear Dodge (Add): adds primary color on top, school-coloring the bar
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.fillStyle = primaryHex;
+    const barRect = new Path2D();
+    barRect.rect(0, barY, W, barH);
+    ctx.fill(barRect);
+    ctx.restore();
   }
 
   // ── 3. School logo ───────────────────────────────────────────────────────
