@@ -292,9 +292,10 @@ async function drawGraphic(
     photoZoom: number;
     borderColorHex: string;
     showFilterOverlay: boolean;
+    photoFilterEnabled: boolean;
   }
 ) {
-  const { primaryHex, logoImg, photoImg, recruitName, position, stars, photoOffset, photoZoom, borderColorHex, showFilterOverlay } = opts;
+  const { primaryHex, logoImg, photoImg, recruitName, position, stars, photoOffset, photoZoom, borderColorHex, showFilterOverlay, photoFilterEnabled } = opts;
   const W = CANVAS_W, H = CANVAS_H;
 
   try {
@@ -414,7 +415,9 @@ async function drawGraphic(
     const clampedY   = Math.max(-maxOffsetY, Math.min(maxOffsetY, photoOffset.y));
     const drawX      = fX - (drawW - fW) / 2 + clampedX;
     const drawY      = fY - (drawH - fH) / 2 + clampedY;
+    if (photoFilterEnabled) offCtx.filter = "contrast(1.12) saturate(1.22) brightness(1.05) sepia(0.14)";
     offCtx.drawImage(photoImg, 0, 0, photoImg.naturalWidth, photoImg.naturalHeight, drawX, drawY, drawW, drawH);
+    offCtx.filter = "none";
   } else {
     offCtx.fillStyle = "#2a2a2a";
     offCtx.fillRect(fX, fY, fW, fH);
@@ -551,6 +554,7 @@ export default function CommitPage() {
   const [isRendering, setIsRendering] = useState(false);
   const [borderUseSecondary, setBorderUseSecondary] = useState(false);
   const [showFilterOverlay, setShowFilterOverlay] = useState(true);
+  const [photoFilterEnabled, setPhotoFilterEnabled] = useState(false);
 
   const CONF_ORDER: Record<string, number> = { SEC: 0, "Big Ten": 1, ACC: 2, "Big 12": 3, Independent: 4 };
   const sortedColleges = [...COLLEGES].sort((a, b) => {
@@ -692,11 +696,12 @@ export default function CommitPage() {
         photoZoom,
         borderColorHex: borderUseSecondary ? (college?.secondaryHex ?? "#ffffff") : "#ffffff",
         showFilterOverlay,
+        photoFilterEnabled,
       });
     } finally {
       setIsRendering(false);
     }
-  }, [college, recruitName, position, stars, photoPreviewUrl, sessionPhotoData, photoOffset, photoZoom, borderUseSecondary, showFilterOverlay]);
+  }, [college, recruitName, position, stars, photoPreviewUrl, sessionPhotoData, photoOffset, photoZoom, borderUseSecondary, showFilterOverlay, photoFilterEnabled]);
 
   useEffect(() => {
     renderCanvas();
@@ -844,6 +849,23 @@ export default function CommitPage() {
                     className="flex-1 accent-purple-500"
                   />
                   <span className="text-gray-400 text-xs w-8 text-right">{photoZoom.toFixed(1)}×</span>
+                </div>
+              )}
+
+              {/* Photo filter toggle */}
+              {hasPhoto && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => setPhotoFilterEnabled(prev => !prev)}
+                    className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                      photoFilterEnabled
+                        ? "bg-orange-500/20 border-orange-500/40 text-orange-400"
+                        : "bg-gray-800 border-gray-700 text-gray-500"
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${photoFilterEnabled ? "bg-orange-400" : "bg-gray-600"}`} />
+                    Warm filter {photoFilterEnabled ? "ON" : "OFF"}
+                  </button>
                 </div>
               )}
 
