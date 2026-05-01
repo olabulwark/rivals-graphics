@@ -320,7 +320,7 @@ async function drawGraphic(
   const barImg = await loadImage("/commit-bar.png");
   if (barImg) {
     const barH = W * (barImg.naturalHeight / barImg.naturalWidth);
-    const barY = bandCenterY - barH / 2 + 1;
+    const barY = bandCenterY - barH / 2 - 19;
 
     // Offscreen: lighter (Linear Dodge) recolors black → primary while keeping topo pattern,
     // then destination-in clips result to bar's opaque shape only.
