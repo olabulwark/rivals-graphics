@@ -437,7 +437,7 @@ async function drawGraphic(
   }
 
   // ── 6. Recruit name — Teko font ──────────────────────────────────────────
-  const nameY    = photoBotY + 102;
+  const nameY    = photoBotY + 93;
   const nameText = recruitName ? recruitName.toUpperCase() : "RECRUIT NAME";
   const maxNameW = W - 220;
   let nameFontSize = 85;
@@ -464,12 +464,12 @@ async function drawGraphic(
   ctx.textAlign    = "left";
 
   const capCenter  = lineY - 16;
-  const sepH       = 54;
+  const sepH       = 44;
   const sepW       = 4;
   const sepGap     = 14;
   const starsFontSize = 54;
 
-  ctx.font = `400 57px "Teko", sans-serif`;
+  ctx.font = `400 54px "Teko", sans-serif`;
   const posW = posText ? ctx.measureText(posText).width : 0;
 
   ctx.font = `400 ${starsFontSize}px "Teko", sans-serif`;
@@ -479,7 +479,7 @@ async function drawGraphic(
   let x = W / 2 - totalW / 2;
 
   if (posText) {
-    ctx.font = `400 57px "Teko", sans-serif`;
+    ctx.font = `400 54px "Teko", sans-serif`;
     ctx.fillStyle = "#111111";
     ctx.fillText(posText, x, capCenter);
     x += posW;
