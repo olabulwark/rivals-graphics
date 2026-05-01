@@ -359,11 +359,11 @@ async function drawGraphic(
   const nameText = recruitName ? recruitName.toUpperCase() : "RECRUIT NAME";
   const maxNameW = W - 220;
   let nameFontSize = 82;
-  ctx.font = `300 ${nameFontSize}px "Teko", sans-serif`;
+  ctx.font = `400 ${nameFontSize}px "Teko", sans-serif`;
   const nw = ctx.measureText(nameText).width;
   if (nw > maxNameW) {
     nameFontSize = Math.max(Math.floor(nameFontSize * maxNameW / nw), 40);
-    ctx.font = `300 ${nameFontSize}px "Teko", sans-serif`;
+    ctx.font = `400 ${nameFontSize}px "Teko", sans-serif`;
   }
   ctx.fillStyle = "#111111";
   ctx.textAlign = "center";
@@ -376,7 +376,7 @@ async function drawGraphic(
   const posText   = position ? position.toUpperCase() : "";
   const lineY     = nameY + 72;
 
-  ctx.font = `300 46px "Teko", sans-serif`;
+  ctx.font = `400 60px "Teko", sans-serif`;
   ctx.textBaseline = "middle";
   ctx.textAlign    = "left";
 
