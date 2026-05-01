@@ -259,7 +259,7 @@ async function drawGraphic(
   const barImg = await loadImage("/commit-bar.png");
   if (barImg) {
     const barH = W * (barImg.naturalHeight / barImg.naturalWidth);
-    const barY = bandCenterY - barH / 2;
+    const barY = bandCenterY - barH / 2 + 25;
 
     // Offscreen: lighter (Linear Dodge) recolors black → primary while keeping topo pattern,
     // then destination-in clips result to bar's opaque shape only.
@@ -353,6 +353,29 @@ async function drawGraphic(
   ctx.shadowOffsetY = 18;
   ctx.drawImage(off, 0, 0);
   ctx.restore();
+
+  // ── 5b. 3px stroke border around photo frame shape ───────────────────────
+  if (photoFrameImg) {
+    const strokeWidth = 3;
+    const strokeOff = document.createElement("canvas");
+    strokeOff.width  = W;
+    strokeOff.height = H;
+    const sCtx = strokeOff.getContext("2d")!;
+
+    // Draw frame enlarged by strokeWidth on each side — this becomes the outer edge
+    sCtx.drawImage(photoFrameImg, fX - strokeWidth, fY - strokeWidth, fW + strokeWidth * 2, fH + strokeWidth * 2);
+
+    // Cut out the interior using the normal-size frame — leaves just the border ring
+    sCtx.globalCompositeOperation = "destination-out";
+    sCtx.drawImage(photoFrameImg, fX, fY, fW, fH);
+
+    // Color the remaining ring white
+    sCtx.globalCompositeOperation = "source-in";
+    sCtx.fillStyle = "#ffffff";
+    sCtx.fillRect(0, 0, W, H);
+
+    ctx.drawImage(strokeOff, 0, 0);
+  }
 
   // ── 6. Recruit name — Teko font ──────────────────────────────────────────
   const nameY    = photoBotY + 102;
