@@ -496,10 +496,7 @@ export default function RecruitingNewsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
               </svg>
             </div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-white font-bold text-lg">Recruiting News</h1>
-              <span className="text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded px-1.5 py-0.5 leading-none">WIP</span>
-            </div>
+            <h1 className="text-white font-bold text-lg">Recruiting News</h1>
           </div>
           <a href="/" className="text-sm text-gray-400 hover:text-white transition-colors">← Home</a>
         </div>
