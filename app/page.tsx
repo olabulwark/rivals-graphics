@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4">
       <div className="absolute top-4 right-4">
-        <UserButton afterSignOutUrl="/sign-in" />
+        <UserButton />
       </div>
       <div className="flex flex-col items-center gap-12 w-full max-w-lg">
 
