@@ -923,6 +923,18 @@ export const COLLEGES: College[] = [
     secondaryHex: "#FFCC00",
   },
   {
+    id: "oregon-state",
+    name: "Oregon State",
+    nickname: "Beavers",
+    abbreviation: "ORST",
+    conference: "Independent",
+    primaryColor: "orange",
+    secondaryColor: "black",
+    jerseyDescription: "orange jersey with black numbers and 'OREGON STATE' across the chest, black pants with orange stripe",
+    primaryHex: "#DC4405",
+    secondaryHex: "#000000",
+  },
+  {
     id: "north-carolina-a-and-t",
     name: "NC A&T",
     nickname: "Aggies",

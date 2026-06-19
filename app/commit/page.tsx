@@ -8,9 +8,10 @@ const CANVAS_H = 1350;
 
 // Map college IDs to logos-real slugs where they differ
 const LOGO_SLUG_MAP: Record<string, string> = {
-  "texas-am":        "texas-a-and-m",
-  "pittsburgh":      "pitt",
+  "texas-am":          "texas-a-and-m",
+  "pittsburgh":        "pitt",
   "mississippi-state": "mississippi-state1",
+  "oregon-state":      "oregonstate",
 };
 
 // Try logos-real first, then fall back to jersey library
