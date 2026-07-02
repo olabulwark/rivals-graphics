@@ -12,6 +12,7 @@ const LOGO_SLUG_MAP: Record<string, string> = {
   "pittsburgh":        "pitt",
   "mississippi-state": "mississippi-state1",
   "oregon-state":      "oregonstate",
+  "fresno-state":      "fresnostate",
 };
 
 // Try logos-real first, then fall back to jersey library

@@ -946,6 +946,18 @@ export const COLLEGES: College[] = [
     primaryHex: "#004F9F",
     secondaryHex: "#FFD700",
   },
+  {
+    id: "fresno-state",
+    name: "Fresno State",
+    nickname: "Bulldogs",
+    abbreviation: "FRES",
+    conference: "Mountain West",
+    primaryColor: "red",
+    secondaryColor: "navy blue",
+    jerseyDescription: "red jersey with navy blue numbers and 'FRESNO STATE' across the chest, white pants with red and navy stripes",
+    primaryHex: "#CC0033",
+    secondaryHex: "#002E6D",
+  },
 ];
 
 export const CONFERENCES = [
