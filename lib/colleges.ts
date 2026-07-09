@@ -958,6 +958,18 @@ export const COLLEGES: College[] = [
     primaryHex: "#CC0033",
     secondaryHex: "#002E6D",
   },
+  {
+    id: "san-diego-state",
+    name: "San Diego State",
+    nickname: "Aztecs",
+    abbreviation: "SDSU",
+    conference: "Mountain West",
+    primaryColor: "scarlet",
+    secondaryColor: "black",
+    jerseyDescription: "scarlet jersey with black numbers and 'AZTECS' across the chest, white pants with scarlet and black stripes",
+    primaryHex: "#A6192E",
+    secondaryHex: "#000000",
+  },
 ];
 
 export const CONFERENCES = [
