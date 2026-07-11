@@ -262,16 +262,16 @@ export default function HsfbRankingsPage() {
       }
 
       // Load all assets in parallel (browser caches these after first load)
-      // Prefer bg-removed PNG; fall back to original if removal failed or is pending
-      const photoSrc = bgRemovedUrl ?? (photoFile ? URL.createObjectURL(photoFile) : null);
-      const createdObjUrl = !bgRemovedUrl && photoFile ? photoSrc : null; // track for cleanup
-      const [rivalsLogo, masseyBadge, photo, ...schoolLogos] = await Promise.all([
+      // Load original photo + bg-removed cutout (if available) separately
+      const origObjUrl = photoFile ? URL.createObjectURL(photoFile) : null;
+      const [rivalsLogo, masseyBadge, photo, photoCutout, ...schoolLogos] = await Promise.all([
         loadImage("/rivals-white.png"),
         loadImage("/massey-ratings.png"),
-        photoSrc ? loadImage(photoSrc) : Promise.resolve(null),
+        origObjUrl ? loadImage(origObjUrl) : Promise.resolve(null),
+        bgRemovedUrl ? loadImage(bgRemovedUrl) : Promise.resolve(null),
         ...entries.map((e) => e.logoUrl ? loadImage(proxyUrl(e.logoUrl)) : Promise.resolve(null)),
       ]);
-      if (createdObjUrl) URL.revokeObjectURL(createdObjUrl);
+      if (origObjUrl) URL.revokeObjectURL(origObjUrl);
 
       // Layout constants (stable across redraws)
       const headerH = 252;
@@ -301,16 +301,8 @@ export default function HsfbRankingsPage() {
         ctx.fillStyle = RIVALS_BLUE;
         ctx.fillRect(0, 0, CANVAS_W, headerH);
 
-        // 2. Photo — right column, FULL canvas height (bleeds into header)
+        // 2. Photo compositing — full original in content area, cutout-only in header
         if (photo) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.rect(listW, 0, photoAreaW, CANVAS_H);
-          ctx.clip();
-
-          if (filter) {
-            ctx.filter = "contrast(1.12) saturate(1.22) brightness(1.05) sepia(0.14)";
-          }
           const baseScale = Math.max(
             photoAreaW / photo.naturalWidth,
             CANVAS_H / photo.naturalHeight
@@ -320,9 +312,30 @@ export default function HsfbRankingsPage() {
           const dh = photo.naturalHeight * scale;
           const dx = listW + (photoAreaW - dw) / 2 + offset.x;
           const dy = (CANVAS_H - dh) / 2 + offset.y;
+          const filterStr = "contrast(1.12) saturate(1.22) brightness(1.05) sepia(0.14)";
+
+          // Full photo (with background) clipped to content area only
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(listW, headerH, photoAreaW, contentH);
+          ctx.clip();
+          if (filter) ctx.filter = filterStr;
           ctx.drawImage(photo, dx, dy, dw, dh);
           ctx.filter = "none";
           ctx.restore();
+
+          // Cutout (bg removed) clipped to header area — only subject bleeds through
+          // Falls back to full photo if cutout not yet ready (no bleed in that case)
+          if (photoCutout) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(listW, 0, photoAreaW, headerH);
+            ctx.clip();
+            if (filter) ctx.filter = filterStr;
+            ctx.drawImage(photoCutout, dx, dy, dw, dh);
+            ctx.filter = "none";
+            ctx.restore();
+          }
         }
 
         // 3. White background — left list area (below header)
@@ -524,9 +537,9 @@ export default function HsfbRankingsPage() {
                   {isRemovingBg ? (
                     <span className="text-xs text-blue-400 animate-pulse">Removing background…</span>
                   ) : bgRemovedUrl ? (
-                    <span className="text-xs text-green-400">Background removed ✓</span>
+                    <span className="text-xs text-green-400">Background removed ✓ — regenerate to apply bleed</span>
                   ) : bgRemoveError ? (
-                    <span className="text-xs text-yellow-500">Background removal failed — using original</span>
+                    <span className="text-xs text-yellow-500">Background removal failed — no header bleed</span>
                   ) : null}
                   <span className="text-xs text-gray-400">Drag on graphic to pan · Scroll to zoom</span>
                   <div className="flex gap-2 flex-wrap">
