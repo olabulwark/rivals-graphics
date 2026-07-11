@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { RankEntry } from "@/app/api/rankings/route";
+import type { Config as BgRemovalConfig } from "@imgly/background-removal";
 
 const CANVAS_W = 1080;
 const CANVAS_H = 1350;
@@ -95,6 +96,9 @@ export default function HsfbRankingsPage() {
   // Photo
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [bgRemovedUrl, setBgRemovedUrl] = useState<string | null>(null);
+  const [isRemovingBg, setIsRemovingBg] = useState(false);
+  const [bgRemoveError, setBgRemoveError] = useState(false);
 
   // Interactive photo controls — stored in refs so the draw fn is always current
   const interactiveRef = useRef({ zoom: 1.0, offset: { x: 0, y: 0 }, filter: false });
@@ -115,27 +119,47 @@ export default function HsfbRankingsPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
-  // ─── Photo upload ────────────────────────────────────────────────────────
-  const handlePhotoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  // ─── Photo upload + background removal ──────────────────────────────────
+  const handlePhotoChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    if (bgRemovedUrl) URL.revokeObjectURL(bgRemovedUrl);
     setPhotoFile(file);
     setPhotoPreviewUrl(URL.createObjectURL(file));
+    setBgRemovedUrl(null);
+    setBgRemoveError(false);
     interactiveRef.current = { zoom: 1.0, offset: { x: 0, y: 0 }, filter: interactiveRef.current.filter };
     setPhotoZoom(1.0);
-    drawRef.current = null; // force full reload on next render
+    drawRef.current = null;
     setDownloadUrl(null);
-  }, [photoPreviewUrl]);
+
+    // Auto background removal
+    setIsRemovingBg(true);
+    try {
+      const { removeBackground } = await import("@imgly/background-removal");
+      const config: BgRemovalConfig = { output: { format: "image/png", quality: 1 } };
+      const blob = await removeBackground(file, config);
+      const url = URL.createObjectURL(blob);
+      setBgRemovedUrl(url);
+    } catch {
+      setBgRemoveError(true);
+    } finally {
+      setIsRemovingBg(false);
+    }
+  }, [photoPreviewUrl, bgRemovedUrl]);
 
   const clearPhoto = useCallback(() => {
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    if (bgRemovedUrl) URL.revokeObjectURL(bgRemovedUrl);
     setPhotoFile(null);
     setPhotoPreviewUrl(null);
+    setBgRemovedUrl(null);
+    setBgRemoveError(false);
     if (photoInputRef.current) photoInputRef.current.value = "";
     drawRef.current = null;
     setDownloadUrl(null);
-  }, [photoPreviewUrl]);
+  }, [photoPreviewUrl, bgRemovedUrl]);
 
   const resetPhotoPosition = useCallback(() => {
     interactiveRef.current.zoom = 1.0;
@@ -238,14 +262,16 @@ export default function HsfbRankingsPage() {
       }
 
       // Load all assets in parallel (browser caches these after first load)
-      const photoObjUrl = photoFile ? URL.createObjectURL(photoFile) : null;
+      // Prefer bg-removed PNG; fall back to original if removal failed or is pending
+      const photoSrc = bgRemovedUrl ?? (photoFile ? URL.createObjectURL(photoFile) : null);
+      const createdObjUrl = !bgRemovedUrl && photoFile ? photoSrc : null; // track for cleanup
       const [rivalsLogo, masseyBadge, photo, ...schoolLogos] = await Promise.all([
         loadImage("/rivals-white.png"),
         loadImage("/massey-ratings.png"),
-        photoObjUrl ? loadImage(photoObjUrl) : Promise.resolve(null),
+        photoSrc ? loadImage(photoSrc) : Promise.resolve(null),
         ...entries.map((e) => e.logoUrl ? loadImage(proxyUrl(e.logoUrl)) : Promise.resolve(null)),
       ]);
-      if (photoObjUrl) URL.revokeObjectURL(photoObjUrl);
+      if (createdObjUrl) URL.revokeObjectURL(createdObjUrl);
 
       // Layout constants (stable across redraws)
       const headerH = 252;
@@ -394,7 +420,7 @@ export default function HsfbRankingsPage() {
     } finally {
       setIsRendering(false);
     }
-  }, [entries, photoFile, scope, statePick, limit, rankType, headerText, dateText]);
+  }, [entries, photoFile, bgRemovedUrl, scope, statePick, limit, rankType, headerText, dateText]);
 
   // ─── UI helpers ──────────────────────────────────────────────────────────
   const scopeDisplay =
@@ -492,10 +518,18 @@ export default function HsfbRankingsPage() {
             {photoPreviewUrl ? (
               <div className="flex items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photoPreviewUrl} alt="preview" className="w-16 h-16 object-cover rounded-lg" />
+                <img src={bgRemovedUrl ?? photoPreviewUrl} alt="preview"
+                  className="w-16 h-16 object-contain rounded-lg bg-gray-700" />
                 <div className="flex flex-col gap-1">
+                  {isRemovingBg ? (
+                    <span className="text-xs text-blue-400 animate-pulse">Removing background…</span>
+                  ) : bgRemovedUrl ? (
+                    <span className="text-xs text-green-400">Background removed ✓</span>
+                  ) : bgRemoveError ? (
+                    <span className="text-xs text-yellow-500">Background removal failed — using original</span>
+                  ) : null}
                   <span className="text-xs text-gray-400">Drag on graphic to pan · Scroll to zoom</span>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <button onClick={toggleFilter}
                       className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
                         photoFilterEnabled ? "bg-amber-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
