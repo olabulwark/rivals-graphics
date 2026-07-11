@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import type { RankEntry } from "@/app/api/rankings/route";
 
 const CANVAS_W = 1080;
@@ -69,15 +69,13 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-function proxyUrl(logoUrl: string): string {
-  return `/api/proxy-image?url=${encodeURIComponent(logoUrl)}`;
+function proxyUrl(url: string) {
+  return `/api/proxy-image?url=${encodeURIComponent(url)}`;
 }
 
-function todayFormatted(): string {
+function todayFormatted() {
   const d = new Date();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${mm}/${dd}/${d.getFullYear()}`;
+  return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
 export default function HsfbRankingsPage() {
@@ -86,7 +84,7 @@ export default function HsfbRankingsPage() {
 
   // Rankings config
   const [scope, setScope] = useState<"national" | "state">("national");
-  const [state, setState] = useState("florida");
+  const [statePick, setStatePick] = useState("florida");
   const [rankType, setRankType] = useState<"composite" | "massey">("massey");
   const [limit, setLimit] = useState<10 | 25>(25);
 
@@ -98,20 +96,35 @@ export default function HsfbRankingsPage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
 
-  // State
+  // Interactive photo controls — stored in refs so the draw fn is always current
+  const interactiveRef = useRef({ zoom: 1.0, offset: { x: 0, y: 0 }, filter: false });
+  const [photoZoom, setPhotoZoom] = useState(1.0);
+  const [photoFilterEnabled, setPhotoFilterEnabled] = useState(false);
+
+  // Stable draw fn, set after assets load
+  const drawRef = useRef<(() => void) | null>(null);
+
+  // Drag-to-pan state
+  const isDraggingRef = useRef(false);
+  const dragStartRef = useRef({ mouseX: 0, mouseY: 0, ox: 0, oy: 0 });
+
+  // Data / UI state
   const [isFetching, setIsFetching] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
   const [entries, setEntries] = useState<RankEntry[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
+  // ─── Photo upload ────────────────────────────────────────────────────────
   const handlePhotoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
-    const url = URL.createObjectURL(file);
     setPhotoFile(file);
-    setPhotoPreviewUrl(url);
+    setPhotoPreviewUrl(URL.createObjectURL(file));
+    interactiveRef.current = { zoom: 1.0, offset: { x: 0, y: 0 }, filter: interactiveRef.current.filter };
+    setPhotoZoom(1.0);
+    drawRef.current = null; // force full reload on next render
     setDownloadUrl(null);
   }, [photoPreviewUrl]);
 
@@ -120,17 +133,75 @@ export default function HsfbRankingsPage() {
     setPhotoFile(null);
     setPhotoPreviewUrl(null);
     if (photoInputRef.current) photoInputRef.current.value = "";
+    drawRef.current = null;
     setDownloadUrl(null);
   }, [photoPreviewUrl]);
 
+  const resetPhotoPosition = useCallback(() => {
+    interactiveRef.current.zoom = 1.0;
+    interactiveRef.current.offset = { x: 0, y: 0 };
+    setPhotoZoom(1.0);
+    drawRef.current?.();
+  }, []);
+
+  const toggleFilter = useCallback(() => {
+    const next = !interactiveRef.current.filter;
+    interactiveRef.current.filter = next;
+    setPhotoFilterEnabled(next);
+    drawRef.current?.();
+  }, []);
+
+  // ─── Wheel zoom (needs passive:false) ────────────────────────────────────
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!drawRef.current) return;
+      e.preventDefault();
+      const newZoom = Math.max(1, Math.min(4, interactiveRef.current.zoom - e.deltaY * 0.002));
+      interactiveRef.current.zoom = newZoom;
+      setPhotoZoom(newZoom);
+      drawRef.current();
+    };
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // ─── Drag to pan ─────────────────────────────────────────────────────────
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!drawRef.current || !photoFile) return;
+    isDraggingRef.current = true;
+    dragStartRef.current = {
+      mouseX: e.clientX, mouseY: e.clientY,
+      ox: interactiveRef.current.offset.x,
+      oy: interactiveRef.current.offset.y,
+    };
+  }, [photoFile]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !drawRef.current || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const sx = CANVAS_W / rect.width;
+    const sy = CANVAS_H / rect.height;
+    interactiveRef.current.offset = {
+      x: dragStartRef.current.ox + (e.clientX - dragStartRef.current.mouseX) * sx,
+      y: dragStartRef.current.oy + (e.clientY - dragStartRef.current.mouseY) * sy,
+    };
+    drawRef.current();
+  }, []);
+
+  const handleMouseUp = useCallback(() => { isDraggingRef.current = false; }, []);
+
+  // ─── Fetch rankings ──────────────────────────────────────────────────────
   const fetchRankings = useCallback(async () => {
     setIsFetching(true);
     setFetchError(null);
     setEntries([]);
     setDownloadUrl(null);
+    drawRef.current = null;
 
     const params = new URLSearchParams({
-      scope: scope === "national" ? "national" : state,
+      scope: scope === "national" ? "national" : statePick,
       type: scope === "national" ? rankType : "massey",
       limit: String(limit),
     });
@@ -138,18 +209,16 @@ export default function HsfbRankingsPage() {
     try {
       const res = await fetch(`/api/rankings?${params}`);
       const data = await res.json();
-      if (!res.ok || data.error) {
-        setFetchError(data.error ?? "Unknown error");
-      } else {
-        setEntries(data.entries ?? []);
-      }
+      if (!res.ok || data.error) setFetchError(data.error ?? "Unknown error");
+      else setEntries(data.entries ?? []);
     } catch (e) {
       setFetchError(String(e));
     } finally {
       setIsFetching(false);
     }
-  }, [scope, state, rankType, limit]);
+  }, [scope, statePick, rankType, limit]);
 
+  // ─── Main render ─────────────────────────────────────────────────────────
   const renderGraphic = useCallback(async () => {
     if (!entries.length || !canvasRef.current) return;
     setIsRendering(true);
@@ -168,165 +237,172 @@ export default function HsfbRankingsPage() {
         document.fonts.add(font);
       }
 
-      // Load all assets in parallel
+      // Load all assets in parallel (browser caches these after first load)
       const photoObjUrl = photoFile ? URL.createObjectURL(photoFile) : null;
-      const [rivalsLogo, masseyBadge, photoImg] = await Promise.all([
+      const [rivalsLogo, masseyBadge, photo, ...schoolLogos] = await Promise.all([
         loadImage("/rivals-white.png"),
         loadImage("/massey-ratings.png"),
         photoObjUrl ? loadImage(photoObjUrl) : Promise.resolve(null),
+        ...entries.map((e) => e.logoUrl ? loadImage(proxyUrl(e.logoUrl)) : Promise.resolve(null)),
       ]);
       if (photoObjUrl) URL.revokeObjectURL(photoObjUrl);
 
-      // Pre-load all school logos in parallel
-      const schoolLogos = await Promise.all(
-        entries.map((e) =>
-          e.logoUrl ? loadImage(proxyUrl(e.logoUrl)) : Promise.resolve(null)
-        )
-      );
-
-      // ─── Layout ────────────────────────────────────────────────────
+      // Layout constants (stable across redraws)
       const headerH = 252;
       const contentH = CANVAS_H - headerH;
-      const hasPhoto = !!photoImg;
-      const listW = hasPhoto ? Math.round(CANVAS_W * 0.585) : CANVAS_W;
+      const listW = photo ? Math.round(CANVAS_W * 0.585) : CANVAS_W;
       const photoAreaW = CANVAS_W - listW;
       const pad = 28;
-
-      // ─── Header ────────────────────────────────────────────────────
-      ctx.fillStyle = RIVALS_BLUE;
-      ctx.fillRect(0, 0, CANVAS_W, headerH);
-
-      // Rivals logo — top right
-      const rivalsLogoW = 116;
-      if (rivalsLogo) {
-        const rh = Math.round(rivalsLogoW * rivalsLogo.naturalHeight / rivalsLogo.naturalWidth);
-        ctx.drawImage(rivalsLogo, CANVAS_W - rivalsLogoW - 22, 20, rivalsLogoW, rh);
-      }
-
-      // Title text
-      const titleMaxW = rivalsLogo ? CANVAS_W - rivalsLogoW - 52 - pad : CANVAS_W - pad * 2;
-      let hy = 18;
-      ctx.fillStyle = "#ffffff";
-      ctx.textBaseline = "top";
-      ctx.textAlign = "left";
-
-      if (headerText) {
-        ctx.font = `700 86px "Teko", sans-serif`;
-        ctx.fillText(headerText.toUpperCase(), pad, hy, titleMaxW);
-        hy += 82;
-      }
+      const showMassey = rankType === "massey" || scope !== "national";
 
       const scopeLabel =
         scope === "national"
           ? "NATIONAL"
-          : (STATES.find((s) => s.slug === state)?.name.toUpperCase() ?? state.toUpperCase());
+          : (STATES.find((s) => s.slug === statePick)?.name.toUpperCase() ?? statePick.toUpperCase());
       const titleLine2 = `${scopeLabel} HSFB TOP ${limit}`;
-      const line2Size = headerText ? 80 : 90;
-      ctx.font = `700 ${line2Size}px "Teko", sans-serif`;
-      ctx.fillText(titleLine2, pad, hy, titleMaxW);
-      hy += Math.round(line2Size * 0.88);
-
-      // Massey Ratings badge (show for Massey and all state rankings)
-      const showMassey = rankType === "massey" || scope !== "national";
-      if (showMassey && masseyBadge) {
-        const bw = 164;
-        const bh = Math.round(bw * masseyBadge.naturalHeight / masseyBadge.naturalWidth);
-        hy += 10;
-        ctx.drawImage(masseyBadge, pad, hy, bw, bh);
-      }
-
-      // ─── Content area ──────────────────────────────────────────────
-
-      // White background for list
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, headerH, listW, contentH);
-
-      // Photo (right column)
-      if (photoImg && hasPhoto) {
-        const scale = Math.max(
-          photoAreaW / photoImg.naturalWidth,
-          contentH / photoImg.naturalHeight
-        );
-        const drawW = photoImg.naturalWidth * scale;
-        const drawH = photoImg.naturalHeight * scale;
-        const drawX = listW + (photoAreaW - drawW) / 2;
-        const drawY = headerH + (contentH - drawH) / 2;
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(listW, headerH, photoAreaW, contentH);
-        ctx.clip();
-        ctx.drawImage(photoImg, drawX, drawY, drawW, drawH);
-        ctx.restore();
-      }
-
-      // ─── Ranking rows ──────────────────────────────────────────────
       const rowH = contentH / entries.length;
       const logoSize = Math.min(Math.round(rowH * 0.66), 48);
       const fontSize = Math.min(Math.round(rowH * 0.60), 44);
       const rankColW = Math.ceil(fontSize * 1.65);
 
-      for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i];
-        const rowY = headerH + i * rowH;
-        const centerY = rowY + rowH / 2;
-        const isBlue = i % 2 === 1;
-        const color = isBlue ? RIVALS_BLUE : "#111111";
+      // ─── Define stable redraw function ─────────────────────────────────
+      const draw = () => {
+        const { zoom, offset, filter } = interactiveRef.current;
 
-        // Rank number (right-aligned)
-        ctx.fillStyle = color;
-        ctx.font = `700 ${fontSize}px "Teko", sans-serif`;
-        ctx.textBaseline = "middle";
-        ctx.textAlign = "right";
-        ctx.fillText(`${entry.rank}.`, pad + rankColW, centerY);
+        ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
-        // School logo
-        const logo = schoolLogos[i];
-        const logoX = pad + rankColW + 8;
-        if (logo) {
-          const logoY = centerY - logoSize / 2;
-          ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
-        }
+        // 1. Blue header — full width
+        ctx.fillStyle = RIVALS_BLUE;
+        ctx.fillRect(0, 0, CANVAS_W, headerH);
 
-        // School name
-        const nameX = logoX + (logo ? logoSize + 10 : 0);
-        const maxNameW = listW - nameX - pad;
-        ctx.fillStyle = color;
-        ctx.font = `700 ${fontSize}px "Teko", sans-serif`;
-        ctx.textBaseline = "middle";
-        ctx.textAlign = "left";
-        ctx.fillText(entry.name.toUpperCase(), nameX, centerY, maxNameW);
-
-        // Row divider
-        if (i < entries.length - 1) {
-          ctx.strokeStyle = "#d1d5db";
-          ctx.lineWidth = 1;
+        // 2. Photo — right column, FULL canvas height (bleeds into header)
+        if (photo) {
+          ctx.save();
           ctx.beginPath();
-          ctx.moveTo(pad, rowY + rowH);
-          ctx.lineTo(listW - pad, rowY + rowH);
-          ctx.stroke();
+          ctx.rect(listW, 0, photoAreaW, CANVAS_H);
+          ctx.clip();
+
+          if (filter) {
+            ctx.filter = "contrast(1.12) saturate(1.22) brightness(1.05) sepia(0.14)";
+          }
+          const baseScale = Math.max(
+            photoAreaW / photo.naturalWidth,
+            CANVAS_H / photo.naturalHeight
+          );
+          const scale = baseScale * zoom;
+          const dw = photo.naturalWidth * scale;
+          const dh = photo.naturalHeight * scale;
+          const dx = listW + (photoAreaW - dw) / 2 + offset.x;
+          const dy = (CANVAS_H - dh) / 2 + offset.y;
+          ctx.drawImage(photo, dx, dy, dw, dh);
+          ctx.filter = "none";
+          ctx.restore();
         }
-      }
 
-      // Date — bottom right of list area
-      if (dateText) {
-        ctx.fillStyle = "#555555";
-        ctx.font = `400 26px sans-serif`;
-        ctx.textBaseline = "bottom";
-        ctx.textAlign = "right";
-        ctx.fillText(dateText, listW - pad, CANVAS_H - 16);
-      }
+        // 3. White background — left list area (below header)
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, headerH, listW, contentH);
 
-      const url = canvas.toDataURL("image/png");
-      setDownloadUrl(url);
+        // 4. Header title text (left side, over blue)
+        const titleMaxW = rivalsLogo ? CANVAS_W - 150 - pad * 2 : CANVAS_W - pad * 2;
+        let hy = 18;
+        ctx.fillStyle = "#ffffff";
+        ctx.textBaseline = "top";
+        ctx.textAlign = "left";
+
+        if (headerText) {
+          ctx.font = `700 86px "Teko", sans-serif`;
+          ctx.fillText(headerText.toUpperCase(), pad, hy, titleMaxW);
+          hy += 82;
+        }
+
+        const line2Size = headerText ? 80 : 90;
+        ctx.font = `700 ${line2Size}px "Teko", sans-serif`;
+        ctx.fillText(titleLine2, pad, hy, titleMaxW);
+        hy += Math.round(line2Size * 0.88);
+
+        // 5. Massey badge (left side, below title text)
+        if (showMassey && masseyBadge) {
+          const bw = 164;
+          const bh = Math.round(bw * masseyBadge.naturalHeight / masseyBadge.naturalWidth);
+          hy += 10;
+          ctx.drawImage(masseyBadge, pad, hy, bw, bh);
+        }
+
+        // 6. Rivals logo — top right, drawn OVER photo
+        if (rivalsLogo) {
+          const rw = 116;
+          const rh = Math.round(rw * rivalsLogo.naturalHeight / rivalsLogo.naturalWidth);
+          ctx.drawImage(rivalsLogo, CANVAS_W - rw - 22, 20, rw, rh);
+        }
+
+        // 7. Ranking rows
+        for (let i = 0; i < entries.length; i++) {
+          const entry = entries[i];
+          const rowY = headerH + i * rowH;
+          const centerY = rowY + rowH / 2;
+          const isBlue = i % 2 === 1;
+          const color = isBlue ? RIVALS_BLUE : "#111111";
+
+          // Rank number
+          ctx.fillStyle = color;
+          ctx.font = `700 ${fontSize}px "Teko", sans-serif`;
+          ctx.textBaseline = "middle";
+          ctx.textAlign = "right";
+          ctx.fillText(`${entry.rank}.`, pad + rankColW, centerY);
+
+          // Logo
+          const logo = schoolLogos[i];
+          const logoX = pad + rankColW + 8;
+          if (logo) {
+            ctx.drawImage(logo, logoX, centerY - logoSize / 2, logoSize, logoSize);
+          }
+
+          // School name
+          const nameX = logoX + (logo ? logoSize + 10 : 0);
+          ctx.fillStyle = color;
+          ctx.font = `700 ${fontSize}px "Teko", sans-serif`;
+          ctx.textBaseline = "middle";
+          ctx.textAlign = "left";
+          ctx.fillText(entry.name.toUpperCase(), nameX, centerY, listW - nameX - pad);
+
+          // Row divider
+          if (i < entries.length - 1) {
+            ctx.strokeStyle = "#d1d5db";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(pad, rowY + rowH);
+            ctx.lineTo(listW - pad, rowY + rowH);
+            ctx.stroke();
+          }
+        }
+
+        // 8. Date — bottom right of list area
+        if (dateText) {
+          ctx.fillStyle = "#555555";
+          ctx.font = `400 26px sans-serif`;
+          ctx.textBaseline = "bottom";
+          ctx.textAlign = "right";
+          ctx.fillText(dateText, listW - pad, CANVAS_H - 16);
+        }
+
+        setDownloadUrl(canvas.toDataURL("image/png"));
+      };
+
+      drawRef.current = draw;
+      draw();
     } finally {
       setIsRendering(false);
     }
-  }, [entries, limit, scope, state, rankType, headerText, dateText, photoFile]);
+  }, [entries, photoFile, scope, statePick, limit, rankType, headerText, dateText]);
 
+  // ─── UI helpers ──────────────────────────────────────────────────────────
   const scopeDisplay =
     scope === "national"
       ? `National ${rankType}`
-      : `${STATES.find((s) => s.slug === state)?.name ?? state} Massey`;
+      : `${STATES.find((s) => s.slug === statePick)?.name ?? statePick} Massey`;
+
+  const hasGraphic = !!drawRef.current;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white px-4 py-8">
@@ -340,7 +416,6 @@ export default function HsfbRankingsPage() {
         {/* Controls */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 flex flex-col gap-5">
 
-          {/* Scope */}
           <div className="flex flex-col gap-2">
             <label className="text-sm text-gray-400 font-medium">Ranking Scope</label>
             <div className="flex gap-2">
@@ -355,20 +430,16 @@ export default function HsfbRankingsPage() {
             </div>
           </div>
 
-          {/* State picker */}
           {scope === "state" && (
             <div className="flex flex-col gap-2">
               <label className="text-sm text-gray-400 font-medium">State</label>
-              <select value={state} onChange={(e) => setState(e.target.value)}
+              <select value={statePick} onChange={(e) => setStatePick(e.target.value)}
                 className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm">
-                {STATES.map((s) => (
-                  <option key={s.slug} value={s.slug}>{s.name}</option>
-                ))}
+                {STATES.map((s) => <option key={s.slug} value={s.slug}>{s.name}</option>)}
               </select>
             </div>
           )}
 
-          {/* Ranking type — national only */}
           {scope === "national" && (
             <div className="flex flex-col gap-2">
               <label className="text-sm text-gray-400 font-medium">Ranking Type</label>
@@ -385,7 +456,6 @@ export default function HsfbRankingsPage() {
             </div>
           )}
 
-          {/* Limit */}
           <div className="flex flex-col gap-2">
             <label className="text-sm text-gray-400 font-medium">Rankings Count</label>
             <div className="flex gap-2">
@@ -400,7 +470,6 @@ export default function HsfbRankingsPage() {
             </div>
           </div>
 
-          {/* Header text */}
           <div className="flex flex-col gap-2">
             <label className="text-sm text-gray-400 font-medium">Header Text</label>
             <input type="text" placeholder="e.g. PRESEASON 2026"
@@ -408,7 +477,6 @@ export default function HsfbRankingsPage() {
               className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600" />
           </div>
 
-          {/* Date */}
           <div className="flex flex-col gap-2">
             <label className="text-sm text-gray-400 font-medium">Date</label>
             <input type="text" placeholder="MM/DD/YYYY"
@@ -416,7 +484,7 @@ export default function HsfbRankingsPage() {
               className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600" />
           </div>
 
-          {/* Photo upload (optional) */}
+          {/* Photo */}
           <div className="flex flex-col gap-2">
             <label className="text-sm text-gray-400 font-medium">
               Player Photo <span className="text-gray-600 font-normal">(optional)</span>
@@ -424,11 +492,29 @@ export default function HsfbRankingsPage() {
             {photoPreviewUrl ? (
               <div className="flex items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photoPreviewUrl} alt="Photo preview" className="w-20 h-20 object-cover rounded-lg" />
-                <button onClick={clearPhoto}
-                  className="text-sm text-gray-400 hover:text-red-400 transition-colors">
-                  Remove
-                </button>
+                <img src={photoPreviewUrl} alt="preview" className="w-16 h-16 object-cover rounded-lg" />
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-gray-400">Drag on graphic to pan · Scroll to zoom</span>
+                  <div className="flex gap-2">
+                    <button onClick={toggleFilter}
+                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                        photoFilterEnabled ? "bg-amber-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                      }`}>
+                      Warm Filter
+                    </button>
+                    <button onClick={resetPhotoPosition}
+                      className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors">
+                      Reset Position
+                    </button>
+                    <button onClick={clearPhoto}
+                      className="px-3 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-red-400 transition-colors">
+                      Remove
+                    </button>
+                  </div>
+                  {hasGraphic && (
+                    <span className="text-xs text-gray-600">Zoom: {photoZoom.toFixed(2)}×</span>
+                  )}
+                </div>
               </div>
             ) : (
               <button onClick={() => photoInputRef.current?.click()}
@@ -440,14 +526,12 @@ export default function HsfbRankingsPage() {
               onChange={handlePhotoChange} className="hidden" />
           </div>
 
-          {/* Fetch button */}
           <button onClick={fetchRankings} disabled={isFetching}
             className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors">
             {isFetching ? "Fetching…" : "Fetch Rankings from On3"}
           </button>
         </div>
 
-        {/* Error */}
         {fetchError && (
           <div className="bg-red-950 border border-red-800 rounded-xl px-4 py-3 text-red-300 text-sm">
             {fetchError}
@@ -482,9 +566,17 @@ export default function HsfbRankingsPage() {
           </div>
         )}
 
-        {/* Canvas + download */}
+        {/* Canvas */}
         <div className="flex flex-col gap-3">
-          <canvas ref={canvasRef} className="w-full rounded-xl border border-gray-800" />
+          <canvas
+            ref={canvasRef}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{ cursor: photoFile && hasGraphic ? "grab" : "default" }}
+            className="w-full rounded-xl border border-gray-800 select-none"
+          />
           {downloadUrl && (
             <a href={downloadUrl}
               download={`hsfb-${scopeDisplay.toLowerCase().replace(/\s+/g, "-")}-top${limit}.png`}
