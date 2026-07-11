@@ -4,6 +4,8 @@ import { useRef, useState, useCallback } from "react";
 import type { RankEntry } from "@/app/api/rankings/route";
 
 const CANVAS_W = 1080;
+const CANVAS_H = 1350;
+const RIVALS_BLUE = "#0d8bff";
 
 const STATES = [
   { name: "Alabama", slug: "alabama" },
@@ -71,21 +73,55 @@ function proxyUrl(logoUrl: string): string {
   return `/api/proxy-image?url=${encodeURIComponent(logoUrl)}`;
 }
 
+function todayFormatted(): string {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${mm}/${dd}/${d.getFullYear()}`;
+}
+
 export default function HsfbRankingsPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
+  // Rankings config
   const [scope, setScope] = useState<"national" | "state">("national");
-  const [state, setState] = useState("alabama");
-  const [rankType, setRankType] = useState<"composite" | "massey">("composite");
+  const [state, setState] = useState("florida");
+  const [rankType, setRankType] = useState<"composite" | "massey">("massey");
   const [limit, setLimit] = useState<10 | 25>(25);
-  const [headerLine1, setHeaderLine1] = useState("");
-  const [headerLine2, setHeaderLine2] = useState("");
 
+  // Graphic text
+  const [headerText, setHeaderText] = useState("PRESEASON 2026");
+  const [dateText, setDateText] = useState(todayFormatted());
+
+  // Photo
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+
+  // State
   const [isFetching, setIsFetching] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
   const [entries, setEntries] = useState<RankEntry[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+
+  const handlePhotoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    const url = URL.createObjectURL(file);
+    setPhotoFile(file);
+    setPhotoPreviewUrl(url);
+    setDownloadUrl(null);
+  }, [photoPreviewUrl]);
+
+  const clearPhoto = useCallback(() => {
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    setPhotoFile(null);
+    setPhotoPreviewUrl(null);
+    if (photoInputRef.current) photoInputRef.current.value = "";
+    setDownloadUrl(null);
+  }, [photoPreviewUrl]);
 
   const fetchRankings = useCallback(async () => {
     setIsFetching(true);
@@ -119,130 +155,178 @@ export default function HsfbRankingsPage() {
     setIsRendering(true);
     setDownloadUrl(null);
 
-    const canvas = canvasRef.current;
-    const rowH = limit === 10 ? 110 : 68;
-    const headerH = 220;
-    const paddingV = 40;
-    const CANVAS_H = headerH + entries.length * rowH + paddingV * 2;
-    canvas.width = CANVAS_W;
-    canvas.height = CANVAS_H;
+    try {
+      const canvas = canvasRef.current;
+      canvas.width = CANVAS_W;
+      canvas.height = CANVAS_H;
+      const ctx = canvas.getContext("2d")!;
 
-    const ctx = canvas.getContext("2d")!;
-
-    // Background
-    ctx.fillStyle = "#0a0a0a";
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-    // Header
-    const pad = 48;
-    let y = paddingV;
-
-    if (headerLine1) {
-      ctx.fillStyle = "#ffffff";
-      ctx.font = `700 ${limit === 10 ? 52 : 44}px sans-serif`;
-      ctx.textBaseline = "top";
-      ctx.fillText(headerLine1.toUpperCase(), pad, y);
-      y += limit === 10 ? 62 : 54;
-    }
-
-    // "NATIONAL HSFB TOP 25" or "[STATE] HSFB TOP 10"
-    const scopeLabel =
-      scope === "national"
-        ? "NATIONAL"
-        : STATES.find((s) => s.slug === state)?.name.toUpperCase() ?? state.toUpperCase();
-    const typeLabel =
-      scope === "national" && rankType === "massey" ? " MASSEY" : "";
-    const rankLabel = `${scopeLabel}${typeLabel} HSFB TOP ${limit}`;
-    ctx.fillStyle = "#e63946";
-    ctx.font = `800 ${limit === 10 ? 60 : 48}px sans-serif`;
-    ctx.fillText(rankLabel, pad, y);
-    y += limit === 10 ? 70 : 58;
-
-    if (headerLine2) {
-      ctx.fillStyle = "#9ca3af";
-      ctx.font = `400 ${limit === 10 ? 34 : 28}px sans-serif`;
-      ctx.fillText(headerLine2, pad, y);
-      y += limit === 10 ? 44 : 36;
-    }
-
-    y += 16; // gap before list
-
-    // Divider line
-    ctx.strokeStyle = "#333333";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(pad, y);
-    ctx.lineTo(CANVAS_W - pad, y);
-    ctx.stroke();
-    y += 2;
-
-    // Rows
-    const logoSize = limit === 10 ? 72 : 44;
-    const rankW = limit === 10 ? 90 : 60;
-    const nameFont = limit === 10 ? 42 : 28;
-    const locFont = limit === 10 ? 28 : 20;
-
-    for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i];
-      const rowY = y + i * rowH;
-      const centerY = rowY + rowH / 2;
-
-      // Alternating row background
-      if (i % 2 === 1) {
-        ctx.fillStyle = "rgba(255,255,255,0.03)";
-        ctx.fillRect(0, rowY, CANVAS_W, rowH);
+      // Load Teko font
+      if (!document.fonts.check(`700 20px "Teko"`)) {
+        const font = new FontFace("Teko", "url(/Teko-VariableFont_wght.ttf)");
+        await font.load();
+        document.fonts.add(font);
       }
 
-      // Rank number
-      ctx.fillStyle = "#6b7280";
-      ctx.font = `700 ${limit === 10 ? 32 : 22}px sans-serif`;
-      ctx.textBaseline = "middle";
-      ctx.textAlign = "right";
-      ctx.fillText(String(entry.rank), pad + rankW - 8, centerY);
+      // Load all assets in parallel
+      const photoObjUrl = photoFile ? URL.createObjectURL(photoFile) : null;
+      const [rivalsLogo, masseyBadge, photoImg] = await Promise.all([
+        loadImage("/rivals-white.png"),
+        loadImage("/massey-ratings.png"),
+        photoObjUrl ? loadImage(photoObjUrl) : Promise.resolve(null),
+      ]);
+      if (photoObjUrl) URL.revokeObjectURL(photoObjUrl);
 
-      // Logo
-      if (entry.logoUrl) {
-        const logo = await loadImage(proxyUrl(entry.logoUrl));
+      // Pre-load all school logos in parallel
+      const schoolLogos = await Promise.all(
+        entries.map((e) =>
+          e.logoUrl ? loadImage(proxyUrl(e.logoUrl)) : Promise.resolve(null)
+        )
+      );
+
+      // ─── Layout ────────────────────────────────────────────────────
+      const headerH = 252;
+      const contentH = CANVAS_H - headerH;
+      const hasPhoto = !!photoImg;
+      const listW = hasPhoto ? Math.round(CANVAS_W * 0.585) : CANVAS_W;
+      const photoAreaW = CANVAS_W - listW;
+      const pad = 28;
+
+      // ─── Header ────────────────────────────────────────────────────
+      ctx.fillStyle = RIVALS_BLUE;
+      ctx.fillRect(0, 0, CANVAS_W, headerH);
+
+      // Rivals logo — top right
+      const rivalsLogoW = 116;
+      if (rivalsLogo) {
+        const rh = Math.round(rivalsLogoW * rivalsLogo.naturalHeight / rivalsLogo.naturalWidth);
+        ctx.drawImage(rivalsLogo, CANVAS_W - rivalsLogoW - 22, 20, rivalsLogoW, rh);
+      }
+
+      // Title text
+      const titleMaxW = rivalsLogo ? CANVAS_W - rivalsLogoW - 52 - pad : CANVAS_W - pad * 2;
+      let hy = 18;
+      ctx.fillStyle = "#ffffff";
+      ctx.textBaseline = "top";
+      ctx.textAlign = "left";
+
+      if (headerText) {
+        ctx.font = `700 86px "Teko", sans-serif`;
+        ctx.fillText(headerText.toUpperCase(), pad, hy, titleMaxW);
+        hy += 82;
+      }
+
+      const scopeLabel =
+        scope === "national"
+          ? "NATIONAL"
+          : (STATES.find((s) => s.slug === state)?.name.toUpperCase() ?? state.toUpperCase());
+      const titleLine2 = `${scopeLabel} HSFB TOP ${limit}`;
+      const line2Size = headerText ? 80 : 90;
+      ctx.font = `700 ${line2Size}px "Teko", sans-serif`;
+      ctx.fillText(titleLine2, pad, hy, titleMaxW);
+      hy += Math.round(line2Size * 0.88);
+
+      // Massey Ratings badge (show for Massey and all state rankings)
+      const showMassey = rankType === "massey" || scope !== "national";
+      if (showMassey && masseyBadge) {
+        const bw = 164;
+        const bh = Math.round(bw * masseyBadge.naturalHeight / masseyBadge.naturalWidth);
+        hy += 10;
+        ctx.drawImage(masseyBadge, pad, hy, bw, bh);
+      }
+
+      // ─── Content area ──────────────────────────────────────────────
+
+      // White background for list
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, headerH, listW, contentH);
+
+      // Photo (right column)
+      if (photoImg && hasPhoto) {
+        const scale = Math.max(
+          photoAreaW / photoImg.naturalWidth,
+          contentH / photoImg.naturalHeight
+        );
+        const drawW = photoImg.naturalWidth * scale;
+        const drawH = photoImg.naturalHeight * scale;
+        const drawX = listW + (photoAreaW - drawW) / 2;
+        const drawY = headerH + (contentH - drawH) / 2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(listW, headerH, photoAreaW, contentH);
+        ctx.clip();
+        ctx.drawImage(photoImg, drawX, drawY, drawW, drawH);
+        ctx.restore();
+      }
+
+      // ─── Ranking rows ──────────────────────────────────────────────
+      const rowH = contentH / entries.length;
+      const logoSize = Math.min(Math.round(rowH * 0.66), 48);
+      const fontSize = Math.min(Math.round(rowH * 0.60), 44);
+      const rankColW = Math.ceil(fontSize * 1.65);
+
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        const rowY = headerH + i * rowH;
+        const centerY = rowY + rowH / 2;
+        const isBlue = i % 2 === 1;
+        const color = isBlue ? RIVALS_BLUE : "#111111";
+
+        // Rank number (right-aligned)
+        ctx.fillStyle = color;
+        ctx.font = `700 ${fontSize}px "Teko", sans-serif`;
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "right";
+        ctx.fillText(`${entry.rank}.`, pad + rankColW, centerY);
+
+        // School logo
+        const logo = schoolLogos[i];
+        const logoX = pad + rankColW + 8;
         if (logo) {
-          const lx = pad + rankW + 12;
-          const ly = centerY - logoSize / 2;
-          ctx.drawImage(logo, lx, ly, logoSize, logoSize);
+          const logoY = centerY - logoSize / 2;
+          ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+        }
+
+        // School name
+        const nameX = logoX + (logo ? logoSize + 10 : 0);
+        const maxNameW = listW - nameX - pad;
+        ctx.fillStyle = color;
+        ctx.font = `700 ${fontSize}px "Teko", sans-serif`;
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
+        ctx.fillText(entry.name.toUpperCase(), nameX, centerY, maxNameW);
+
+        // Row divider
+        if (i < entries.length - 1) {
+          ctx.strokeStyle = "#d1d5db";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(pad, rowY + rowH);
+          ctx.lineTo(listW - pad, rowY + rowH);
+          ctx.stroke();
         }
       }
 
-      const textX = pad + rankW + 12 + logoSize + 16;
-
-      // School name
-      ctx.fillStyle = "#ffffff";
-      ctx.font = `700 ${nameFont}px sans-serif`;
-      ctx.textAlign = "left";
-      if (entry.location) {
-        ctx.fillText(entry.name, textX, centerY - (limit === 10 ? 14 : 9));
-        ctx.fillStyle = "#6b7280";
-        ctx.font = `400 ${locFont}px sans-serif`;
-        ctx.fillText(entry.location, textX, centerY + (limit === 10 ? 18 : 13));
-      } else {
-        ctx.fillText(entry.name, textX, centerY);
+      // Date — bottom right of list area
+      if (dateText) {
+        ctx.fillStyle = "#555555";
+        ctx.font = `400 26px sans-serif`;
+        ctx.textBaseline = "bottom";
+        ctx.textAlign = "right";
+        ctx.fillText(dateText, listW - pad, CANVAS_H - 16);
       }
 
-      // Divider
-      ctx.strokeStyle = "#1f2937";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(pad, rowY + rowH);
-      ctx.lineTo(CANVAS_W - pad, rowY + rowH);
-      ctx.stroke();
+      const url = canvas.toDataURL("image/png");
+      setDownloadUrl(url);
+    } finally {
+      setIsRendering(false);
     }
+  }, [entries, limit, scope, state, rankType, headerText, dateText, photoFile]);
 
-    const url = canvas.toDataURL("image/png");
-    setDownloadUrl(url);
-    setIsRendering(false);
-  }, [entries, limit, scope, state, rankType, headerLine1, headerLine2]);
-
-  const scopeLabel =
+  const scopeDisplay =
     scope === "national"
-      ? "National"
-      : STATES.find((s) => s.slug === state)?.name ?? state;
+      ? `National ${rankType}`
+      : `${STATES.find((s) => s.slug === state)?.name ?? state} Massey`;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white px-4 py-8">
@@ -261,15 +345,10 @@ export default function HsfbRankingsPage() {
             <label className="text-sm text-gray-400 font-medium">Ranking Scope</label>
             <div className="flex gap-2">
               {(["national", "state"] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setScope(s)}
+                <button key={s} onClick={() => setScope(s)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
-                    scope === s
-                      ? "bg-red-600 text-white"
-                      : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                  }`}
-                >
+                    scope === s ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  }`}>
                   {s}
                 </button>
               ))}
@@ -280,11 +359,8 @@ export default function HsfbRankingsPage() {
           {scope === "state" && (
             <div className="flex flex-col gap-2">
               <label className="text-sm text-gray-400 font-medium">State</label>
-              <select
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
-              >
+              <select value={state} onChange={(e) => setState(e.target.value)}
+                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm">
                 {STATES.map((s) => (
                   <option key={s.slug} value={s.slug}>{s.name}</option>
                 ))}
@@ -298,15 +374,10 @@ export default function HsfbRankingsPage() {
               <label className="text-sm text-gray-400 font-medium">Ranking Type</label>
               <div className="flex gap-2">
                 {(["composite", "massey"] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setRankType(t)}
+                  <button key={t} onClick={() => setRankType(t)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
-                      rankType === t
-                        ? "bg-red-600 text-white"
-                        : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                    }`}
-                  >
+                      rankType === t ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                    }`}>
                     {t}
                   </button>
                 ))}
@@ -319,46 +390,59 @@ export default function HsfbRankingsPage() {
             <label className="text-sm text-gray-400 font-medium">Rankings Count</label>
             <div className="flex gap-2">
               {([10, 25] as const).map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setLimit(n)}
+                <button key={n} onClick={() => setLimit(n)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    limit === n
-                      ? "bg-red-600 text-white"
-                      : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                  }`}
-                >
+                    limit === n ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  }`}>
                   Top {n}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Header lines */}
-          <div className="flex flex-col gap-3">
+          {/* Header text */}
+          <div className="flex flex-col gap-2">
             <label className="text-sm text-gray-400 font-medium">Header Text</label>
-            <input
-              type="text"
-              placeholder="Line 1 (e.g. Week 8 Rankings)"
-              value={headerLine1}
-              onChange={(e) => setHeaderLine1(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600"
-            />
-            <input
-              type="text"
-              placeholder="Line 2 (optional, e.g. Presented by On3)"
-              value={headerLine2}
-              onChange={(e) => setHeaderLine2(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600"
-            />
+            <input type="text" placeholder="e.g. PRESEASON 2026"
+              value={headerText} onChange={(e) => setHeaderText(e.target.value)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600" />
+          </div>
+
+          {/* Date */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-gray-400 font-medium">Date</label>
+            <input type="text" placeholder="MM/DD/YYYY"
+              value={dateText} onChange={(e) => setDateText(e.target.value)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600" />
+          </div>
+
+          {/* Photo upload (optional) */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-gray-400 font-medium">
+              Player Photo <span className="text-gray-600 font-normal">(optional)</span>
+            </label>
+            {photoPreviewUrl ? (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photoPreviewUrl} alt="Photo preview" className="w-20 h-20 object-cover rounded-lg" />
+                <button onClick={clearPhoto}
+                  className="text-sm text-gray-400 hover:text-red-400 transition-colors">
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => photoInputRef.current?.click()}
+                className="bg-gray-800 border border-gray-700 border-dashed hover:border-gray-500 rounded-xl px-4 py-4 text-sm text-gray-500 hover:text-gray-300 transition-colors text-center">
+                Click to upload player photo
+              </button>
+            )}
+            <input ref={photoInputRef} type="file" accept="image/*"
+              onChange={handlePhotoChange} className="hidden" />
           </div>
 
           {/* Fetch button */}
-          <button
-            onClick={fetchRankings}
-            disabled={isFetching}
-            className="bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
-          >
+          <button onClick={fetchRankings} disabled={isFetching}
+            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors">
             {isFetching ? "Fetching…" : "Fetch Rankings from On3"}
           </button>
         </div>
@@ -375,32 +459,23 @@ export default function HsfbRankingsPage() {
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between mb-1">
               <p className="text-sm font-medium text-gray-300">
-                {entries.length} entries fetched — {scopeLabel}{scope === "national" ? ` ${rankType}` : " Massey"} Top {limit}
+                {entries.length} schools — {scopeDisplay} Top {limit}
               </p>
-              <button
-                onClick={renderGraphic}
-                disabled={isRendering}
-                className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-              >
+              <button onClick={renderGraphic} disabled={isRendering}
+                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
                 {isRendering ? "Rendering…" : "Generate Graphic"}
               </button>
             </div>
-            <div className="flex flex-col gap-1 max-h-80 overflow-y-auto">
+            <div className="flex flex-col gap-0.5 max-h-64 overflow-y-auto">
               {entries.map((e) => (
                 <div key={e.rank} className="flex items-center gap-3 py-1 border-b border-gray-800 last:border-0">
-                  <span className="text-gray-500 text-xs w-6 text-right">{e.rank}.</span>
+                  <span className="text-gray-500 text-xs w-6 text-right shrink-0">{e.rank}.</span>
                   {e.logoUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={proxyUrl(e.logoUrl)}
-                      alt=""
-                      className="w-7 h-7 object-contain"
-                    />
+                    <img src={proxyUrl(e.logoUrl)} alt="" className="w-6 h-6 object-contain shrink-0" />
                   )}
                   <span className="text-sm text-white">{e.name}</span>
-                  {e.location && (
-                    <span className="text-xs text-gray-500">{e.location}</span>
-                  )}
+                  {e.location && <span className="text-xs text-gray-500">{e.location}</span>}
                 </div>
               ))}
             </div>
@@ -411,11 +486,9 @@ export default function HsfbRankingsPage() {
         <div className="flex flex-col gap-3">
           <canvas ref={canvasRef} className="w-full rounded-xl border border-gray-800" />
           {downloadUrl && (
-            <a
-              href={downloadUrl}
-              download={`hsfb-rankings-${scopeLabel.toLowerCase()}-top${limit}.png`}
-              className="bg-gray-800 hover:bg-gray-700 text-white text-center font-semibold py-3 rounded-xl transition-colors"
-            >
+            <a href={downloadUrl}
+              download={`hsfb-${scopeDisplay.toLowerCase().replace(/\s+/g, "-")}-top${limit}.png`}
+              className="bg-gray-800 hover:bg-gray-700 text-white text-center font-semibold py-3 rounded-xl transition-colors block">
               Download PNG
             </a>
           )}
